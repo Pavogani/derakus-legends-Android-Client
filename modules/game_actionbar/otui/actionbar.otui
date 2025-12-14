@@ -1,7 +1,7 @@
 ActionButton < UIButton
   font: cipsoftFont
-  size: 34 34
-  margin-left: 2
+  size: 44 44
+  margin-left: 3
   image-source: /images/game/actionbar/actionbarslot
   Item
     id: item
@@ -92,10 +92,10 @@ ActionButton < UIButton
     visible: false
 
 LeftSliders < Panel
-  size: 17 34
+  size: 22 44
   UIButton
     id: prev
-    size: 17 17
+    size: 22 22
     anchors.top: parent.top
     anchors.left: parent.left
     @onClick: modules.game_actionbar.moveActionButtons(self)
@@ -112,7 +112,7 @@ LeftSliders < Panel
 
   UIButton
     id: first
-    size: 17 17
+    size: 22 22
     anchors.top: prev.bottom
     anchors.left: parent.left
     @onClick: modules.game_actionbar.moveActionButtons(self)
@@ -132,11 +132,11 @@ LeftSliders < Panel
       tooltip: Move to the first action button
 
 RightSliders < Panel
-  size: 17 34
+  size: 22 44
 
   UIButton
     id: next
-    size: 17 17
+    size: 22 22
     anchors.top: parent.top
     anchors.right: parent.right
     margin-right: -1
@@ -157,11 +157,11 @@ RightSliders < Panel
 
   UIButton
     id: last
-    size: 17 17
+    size: 22 22
     anchors.top: parent.top
     anchors.right: parent.right
     margin-right: -1
-    margin-top: 17
+    margin-top: 22
     @onClick: modules.game_actionbar.moveActionButtons(self)
     on: true
     image-source: /images/game/actionbar/double-arrow-right
@@ -182,12 +182,14 @@ Panel
   focusable: false
   image-source: /images/ui/actionbar/actionbar_background-light
   image-border: 1
-  //margin-top: 2
-  padding-top: 3
-  padding-bottom: 1
+  background-color: #2a2a2a
+  border-color: #505050
+  border-width: 1
+  padding-top: 4
+  padding-bottom: 2
 
   $on:
-    height: 36
+    height: 50
     visible: true
 
   $!on:

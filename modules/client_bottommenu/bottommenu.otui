@@ -26,10 +26,13 @@ ShowOffWidget < UIWidget
 
 Panel
   id: bottomMenu
-  size: 1020 116
+  size: 1020 130
   anchors.bottom: parent.bottom
   anchors.horizontalCenter: parent.horizontalCenter
   image-source: /images/ui/panel_top
+  background-color: #1a1a1a
+  border-color: #505050
+  border-width: 1
   
   UIWidget
     phantom: true
@@ -39,7 +42,7 @@ Panel
     text-auto-resize: true
     color: #e98d02
     margin-bottom: 110
-    text: OTClient Redemption
+    text: Deraku's Legends
     font: verdana-11px-rounded
     font-scale: 4
     shader: Map - Party
@@ -49,8 +52,10 @@ Panel
     anchors.bottom: parent.bottom
     anchors.top: parent.top
     anchors.left: parent.left
-    size: 605 116
+    size: 605 130
     draggable: false
+    background-color: #2a2a2a
+    border-color: #505050
 
     Label
       id: showOffWindowText
@@ -70,8 +75,10 @@ Panel
     anchors.top: parent.top
     anchors.left: prev.right
     margin-left: 1
-    size: 246 116
+    size: 246 130
     draggable: false
+    background-color: #2a2a2a
+    border-color: #505050
 
     Label
       !text: tr('Event Schedule')
@@ -132,8 +139,10 @@ Panel
     anchors.top: parent.top
     anchors.left: prev.right
     margin-left: 1
-    size: 169 116
+    size: 169 130
     draggable: false
+    background-color: #2a2a2a
+    border-color: #505050
 
     Label
       !text: tr('Boosted')

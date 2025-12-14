@@ -54,7 +54,7 @@ PhantomMiniWindow
       anchors.left: parent.left
       margin-left: 8
       margin-top: 5
-      size: 12 12
+      size: 24 24
       @onClick: changeInventorySize()
 
       $pressed !disabled:
@@ -66,8 +66,8 @@ PhantomMiniWindow
       image-clip: 0 0 12 12
       anchors.top: changeSize.top
       anchors.left: changeSize.right
-      margin-left: 3
-      size: 12 12
+      margin-left: 4
+      size: 24 24
       @onClick: modules.game_blessing.toggle()
       $pressed !disabled:
         image-clip: 12 0 12 12
@@ -99,7 +99,7 @@ PhantomMiniWindow
       anchors.right: parent.right
       anchors.top: changeSize.top
       margin-right: 7
-      size: 20 20
+      size: 28 28
       @onClick: |
         selectPosture('stand')
 
@@ -116,7 +116,7 @@ PhantomMiniWindow
       anchors.right: standPosture.right
       anchors.top: standPosture.bottom
       margin-top: 4
-      size: 20 20
+      size: 28 28
       @onClick: |
         selectPosture('follow')
 
@@ -132,7 +132,7 @@ PhantomMiniWindow
       anchors.top: followPosture.bottom
       phantom: false
       margin-top: 4
-      size: 20 20
+      size: 28 28
 
       $checked:
         image-source: /data/images/inventory/button-expert-down
@@ -191,7 +191,7 @@ PhantomMiniWindow
       anchors.right: standPosture.left
       anchors.top: standPosture.top
       margin-right: 4
-      size: 20 20
+      size: 28 28
       @onClick: |
         selectCombat('attack')
 
@@ -208,7 +208,7 @@ PhantomMiniWindow
       anchors.right: attack.right
       anchors.top: attack.bottom
       margin-top: 4
-      size: 20 20
+      size: 28 28
       @onClick: |
         selectCombat('balanced')
 
@@ -225,7 +225,7 @@ PhantomMiniWindow
       anchors.right: attack.right
       anchors.top: balanced.bottom
       margin-top: 4
-      size: 20 20
+      size: 28 28
       @onClick: |
         selectCombat('defense')
 

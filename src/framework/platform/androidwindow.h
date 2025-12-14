@@ -102,39 +102,39 @@ public:
     AndroidWindow();
     ~AndroidWindow();
 
-    void init();
-    void terminate();
+    void init() override;
+    void terminate() override;
 
-    void move(const Point& pos);
-    void resize(const Size& size);
-    void show();
-    void hide();
-    void maximize();
-    void poll();
-    void swapBuffers();
-    void showMouse();
-    void hideMouse();
+    void move(const Point& pos) override;
+    void resize(const Size& size) override;
+    void show() override;
+    void hide() override;
+    void maximize() override;
+    void poll() override;
+    void swapBuffers() override;
+    void showMouse() override;
+    void hideMouse() override;
 
-    void setMouseCursor(int cursorId);
-    void restoreMouseCursor();
+    void setMouseCursor(int cursorId) override;
+    void restoreMouseCursor() override;
 
-    void setTitle(const std::string_view title);
-    void setMinimumSize(const Size& minimumSize);
-    void setFullscreen(bool fullscreen);
-    void setVerticalSync(bool enable);
-    void setIcon(const std::string& iconFile);
-    void setClipboardText(const std::string_view text);
+    void setTitle(const std::string_view title) override;
+    void setMinimumSize(const Size& minimumSize) override;
+    void setFullscreen(bool fullscreen) override;
+    void setVerticalSync(bool enable) override;
+    void setIcon(const std::string& iconFile) override;
+    void setClipboardText(const std::string_view text) override;
 
-    Size getDisplaySize();
-    std::string getClipboardText();
-    std::string getPlatformType();
+    Size getDisplaySize() override;
+    std::string getClipboardText() override;
+    std::string getPlatformType() override;
 
     void initializeAndroidApp(android_app* app);
     void nativeCommitText(jstring);
     void onNativeKeyDown(int);
     void onNativeKeyUp(int);
 protected:
-    int internalLoadMouseCursor(const ImagePtr& image, const Point& hotSpot);
+    int internalLoadMouseCursor(const ImagePtr& image, const Point& hotSpot) override;
     void onDisplayDensityChanged(float newDensity) override;
 private:
     android_app* m_app;

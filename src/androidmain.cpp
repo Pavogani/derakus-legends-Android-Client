@@ -3,9 +3,7 @@
 #include "framework/platform/androidwindow.h"
 #include <cstdlib>
 
-extern "C" {
 int main(int argc, const char* argv[]);
-}
 
 void android_main(struct android_app* app) {
     g_androidManager.setAndroidApp(app);

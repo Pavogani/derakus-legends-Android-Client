@@ -107,6 +107,10 @@ add_subdirectory(src)
 
 option(OTCLIENT_BUILD_TESTS "Build unit tests" ON)
 
+if(ANDROID OR WASM)
+    set(OTCLIENT_BUILD_TESTS OFF)
+endif()
+
 if(OTCLIENT_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
