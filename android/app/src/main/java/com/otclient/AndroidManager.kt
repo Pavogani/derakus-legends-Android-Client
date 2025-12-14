@@ -1,6 +1,7 @@
 package com.otclient
 
 import android.content.Context
+import android.content.ClipboardManager
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -76,6 +77,16 @@ class AndroidManager(
     }
 
     fun getDisplayDensity(): Float = context.resources.displayMetrics.density
+
+    fun getClipboardText(): String {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        return clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+    }
+
+    fun setClipboardText(text: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("text", text))
+    }
 
     external fun nativeInit()
     external fun nativeSetAudioEnabled(enabled: Boolean)

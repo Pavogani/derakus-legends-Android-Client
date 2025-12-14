@@ -7,6 +7,15 @@ android {
     namespace = "com.github.otclient"
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../derakus-legends.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "Pavoganislegends676!!"
+            keyAlias = "derakus-legends"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "Pavoganislegends676!!"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.github.otclient"
         minSdk = 21
@@ -16,7 +25,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
 
         externalNativeBuild {
@@ -25,7 +34,7 @@ android {
 
                 arguments += listOf(
                     "-DVCPKG_TARGET_ANDROID=ON",
-                    "-DANDROID_STL=c++_shared"
+                    "-DANDROID_STL=c++_static"
                 )
             }
         }
@@ -40,8 +49,9 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
@@ -63,7 +73,7 @@ android {
         prefab = true
     }
 
-    ndkVersion = "29.0.13599879 rc2"
+    ndkVersion = "29.0.13599879"
 }
 
 dependencies {

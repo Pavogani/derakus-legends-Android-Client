@@ -314,12 +314,18 @@ void AndroidWindow::setVerticalSync(bool enable) {
 }
 
 std::string AndroidWindow::getClipboardText() {
-    // TODO
-    return "";
+    try {
+        return g_androidManager.getClipboardText();
+    } catch (const std::exception& e) {
+        return "";
+    }
 }
 
 void AndroidWindow::setClipboardText(const std::string_view text) {
-    // TODO
+    try {
+        g_androidManager.setClipboardText(text);
+    } catch (const std::exception& e) {
+    }
 }
 
 Size AndroidWindow::getDisplaySize() {

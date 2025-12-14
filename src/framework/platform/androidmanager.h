@@ -49,6 +49,9 @@ public:
     float getScreenDensity();
 
     void attachToAppMainThread();
+
+    std::string getClipboardText();
+    void setClipboardText(const std::string_view text);
 private:
     JNIEnv* getJNIEnv();
 

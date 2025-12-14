@@ -179,4 +179,44 @@ void Java_com_otclient_AndroidManager_nativeSetAudioEnabled(JNIEnv*, jobject, jb
 
 }
 
+std::string AndroidManager::getClipboardText() {
+    JNIEnv* env = getJNIEnv();
+    if (!env || !m_androidManagerJObject) return "";
+    
+    jclass androidManagerClass = env->GetObjectClass(m_androidManagerJObject);
+    if (!androidManagerClass) return "";
+    
+    jmethodID methodID = env->GetMethodID(androidManagerClass, "getClipboardText", "()Ljava/lang/String;");
+    env->DeleteLocalRef(androidManagerClass);
+    
+    if (!methodID) return "";
+    
+    jstring jResult = static_cast<jstring>(env->CallObjectMethod(m_androidManagerJObject, methodID));
+    if (!jResult) return "";
+    
+    const char* cResult = env->GetStringUTFChars(jResult, nullptr);
+    std::string result(cResult);
+    env->ReleaseStringUTFChars(jResult, cResult);
+    env->DeleteLocalRef(jResult);
+    
+    return result;
+}
+
+void AndroidManager::setClipboardText(const std::string_view text) {
+    JNIEnv* env = getJNIEnv();
+    if (!env || !m_androidManagerJObject) return;
+    
+    jclass androidManagerClass = env->GetObjectClass(m_androidManagerJObject);
+    if (!androidManagerClass) return;
+    
+    jmethodID methodID = env->GetMethodID(androidManagerClass, "setClipboardText", "(Ljava/lang/String;)V");
+    env->DeleteLocalRef(androidManagerClass);
+    
+    if (!methodID) return;
+    
+    jstring jText = env->NewStringUTF(text.data());
+    env->CallVoidMethod(m_androidManagerJObject, methodID, jText);
+    env->DeleteLocalRef(jText);
+}
+
 #endif
