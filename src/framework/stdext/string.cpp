@@ -26,6 +26,7 @@
 
 #include <utf8cpp/utf8.h>
 #include <iterator>
+#include <cstdlib>
 
 #ifdef _MSC_VER
 #pragma warning(disable:4267) // '?' : conversion from 'A' to 'B', possible loss of data
@@ -77,8 +78,10 @@ namespace stdext
 
     [[nodiscard]] uint64_t hex_to_dec(std::string_view str) {
         uint64_t num = 0;
-        auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), num, 16);
-        if (ec != std::errc())
+        std::string str_null_terminated(str);
+        char* endptr = nullptr;
+        num = std::strtoull(str_null_terminated.c_str(), &endptr, 16);
+        if (endptr == str_null_terminated.c_str() || (endptr != str_null_terminated.c_str() + str_null_terminated.size()))
             throw string_error("Invalid hexadecimal input");
         return num;
     }
