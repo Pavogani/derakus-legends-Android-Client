@@ -489,6 +489,73 @@ void AndroidWindow::updateDisplayDensityFromSystem(float screenDensity) {
     }
 }
 
+float AndroidWindow::calculatePinchDistance(GameActivityMotionEvent* motionEvent) {
+    if (motionEvent->pointerCount < 2) return 0.0f;
+
+    float x1 = GameActivityPointerAxes_getX(&motionEvent->pointers[0]);
+    float y1 = GameActivityPointerAxes_getY(&motionEvent->pointers[0]);
+    float x2 = GameActivityPointerAxes_getX(&motionEvent->pointers[1]);
+    float y2 = GameActivityPointerAxes_getY(&motionEvent->pointers[1]);
+
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+void AndroidWindow::handlePinchGesture(GameActivityMotionEvent* motionEvent, int actionMasked) {
+    if (motionEvent->pointerCount < 2) {
+        // End pinch if we don't have 2 fingers
+        if (m_isPinching) {
+            m_isPinching = false;
+            m_initialPinchDistance = 0.0f;
+            m_lastPinchDistance = 0.0f;
+        }
+        return;
+    }
+
+    float currentDistance = calculatePinchDistance(motionEvent);
+
+    if (actionMasked == AMOTION_EVENT_ACTION_POINTER_DOWN) {
+        // Second finger down - start pinch
+        m_isPinching = true;
+        m_initialPinchDistance = currentDistance;
+        m_lastPinchDistance = currentDistance;
+    } else if (actionMasked == AMOTION_EVENT_ACTION_MOVE && m_isPinching) {
+        // Calculate zoom delta based on distance change
+        if (m_lastPinchDistance > 0.0f) {
+            float distanceChange = currentDistance - m_lastPinchDistance;
+            // Normalize: positive = zoom in, negative = zoom out
+            // Scale factor to make zooming feel natural
+            float zoomDelta = distanceChange / 100.0f;
+
+            // Only fire event if there's meaningful movement
+            if (std::abs(zoomDelta) > 0.01f) {
+                m_inputEvent.reset(Fw::PinchZoomInputEvent);
+                m_inputEvent.zoomDelta = zoomDelta;
+
+                // Set mouse position to center of pinch
+                float x1 = GameActivityPointerAxes_getX(&motionEvent->pointers[0]);
+                float y1 = GameActivityPointerAxes_getY(&motionEvent->pointers[0]);
+                float x2 = GameActivityPointerAxes_getX(&motionEvent->pointers[1]);
+                float y2 = GameActivityPointerAxes_getY(&motionEvent->pointers[1]);
+                m_inputEvent.mousePos = Point(
+                    static_cast<int>((x1 + x2) / 2.0f / m_displayDensity),
+                    static_cast<int>((y1 + y2) / 2.0f / m_displayDensity)
+                );
+
+                if (m_onInputEvent)
+                    m_onInputEvent(m_inputEvent);
+            }
+        }
+        m_lastPinchDistance = currentDistance;
+    } else if (actionMasked == AMOTION_EVENT_ACTION_POINTER_UP) {
+        // Finger lifted - end pinch
+        m_isPinching = false;
+        m_initialPinchDistance = 0.0f;
+        m_lastPinchDistance = 0.0f;
+    }
+}
+
 void AndroidWindow::processNativeInputEvents() {
     android_input_buffer* inputBuffer = android_app_swap_input_buffers(m_app);
 
@@ -500,6 +567,21 @@ void AndroidWindow::processNativeInputEvents() {
             const int action = motionEvent->action;
             const int actionMasked = action & AMOTION_EVENT_ACTION_MASK;
             uint32_t pointerIndex = GAMEACTIVITY_MAX_NUM_POINTERS_IN_MOTION_EVENT;
+
+            // Handle pinch-to-zoom gesture for multi-touch
+            if (motionEvent->pointerCount >= 2) {
+                handlePinchGesture(motionEvent, actionMasked);
+
+                // Skip normal touch handling during pinch
+                if (m_isPinching) {
+                    continue;
+                }
+            } else if (m_isPinching) {
+                // End pinch when we go back to single touch
+                m_isPinching = false;
+                m_initialPinchDistance = 0.0f;
+                m_lastPinchDistance = 0.0f;
+            }
 
             switch (actionMasked) {
                 case AMOTION_EVENT_ACTION_UP:
@@ -530,17 +612,17 @@ void AndroidWindow::processNativeInputEvents() {
 }
 
 extern "C" {
-void Java_com_otclient_NativeInputConnection_nativeCommitText(
+void Java_com_derakus_legends_NativeInputConnection_nativeCommitText(
         JNIEnv* env, jobject obj, jstring text) {
     ((AndroidWindow&) g_window).nativeCommitText(text);
 }
 
-void Java_com_otclient_FakeEditText_onNativeKeyDown(
+void Java_com_derakus_legends_FakeEditText_onNativeKeyDown(
         JNIEnv* env, jobject obj, jint keyCode ) {
     ((AndroidWindow&) g_window).onNativeKeyDown(keyCode);
 }
 
-void Java_com_otclient_FakeEditText_onNativeKeyUp(
+void Java_com_derakus_legends_FakeEditText_onNativeKeyUp(
         JNIEnv* env, jobject obj, jint keyCode ) {
     ((AndroidWindow&) g_window).onNativeKeyUp(keyCode);
 }

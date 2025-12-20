@@ -186,6 +186,13 @@ void UIManager::inputEvent(const InputEvent& event)
                     break;
             }
             break;
+        case Fw::PinchZoomInputEvent:
+            m_rootWidget->propagateOnMouseEvent(event.mousePos, widgetList);
+            for (const auto& widget : widgetList) {
+                if (widget->onPinchZoom(event.mousePos, event.zoomDelta))
+                    break;
+            }
+            break;
         default:
             break;
     }

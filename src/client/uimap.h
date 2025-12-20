@@ -101,6 +101,7 @@ protected:
     bool onMousePress(const Point& mousePos, Fw::MouseButton button) override;
     bool onMouseRelease(const Point& mousePos, Fw::MouseButton button) override;
     bool onMouseWheel(const Point& mousePos, Fw::MouseWheelDirection direction) override;
+    bool onPinchZoom(const Point& mousePos, float zoomDelta) override;
 
 private:
     void updateVisibleDimension();

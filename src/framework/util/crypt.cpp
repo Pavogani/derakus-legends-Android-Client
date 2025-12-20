@@ -30,7 +30,10 @@
 
 #ifndef USE_GMP
 #include <openssl/bn.h>
-#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
+#include <openssl/err.h>
 #endif
 
 constexpr std::size_t CHECKSUM_BYTES = sizeof(uint32_t);
@@ -46,7 +49,13 @@ Crypt::Crypt()
     mpz_init(m_e);
     mpz_init(m_n);
 #else
-    m_rsa = RSA_new();
+    m_pkey = nullptr;
+    m_bn_n = nullptr;
+    m_bn_e = nullptr;
+    m_bn_d = nullptr;
+    m_bn_p = nullptr;
+    m_bn_q = nullptr;
+    m_hasPrivateKey = false;
 #endif
 }
 
@@ -59,7 +68,12 @@ Crypt::~Crypt()
     mpz_clear(m_d);
     mpz_clear(m_e);
 #else
-    RSA_free(m_rsa);
+    EVP_PKEY_free(m_pkey);
+    BN_free(m_bn_n);
+    BN_free(m_bn_e);
+    BN_free(m_bn_d);
+    BN_free(m_bn_p);
+    BN_free(m_bn_q);
 #endif
 }
 
@@ -167,46 +181,111 @@ void Crypt::rsaSetPublicKey(const std::string& n, const std::string& e)
     mpz_set_str(m_n, n.c_str(), 10);
     mpz_set_str(m_e, e.c_str(), 10);
 #else
-    BIGNUM* bn = nullptr, * be = nullptr;
-    BN_dec2bn(&bn, n.c_str());
-    BN_dec2bn(&be, e.c_str());
-    RSA_set0_key(m_rsa, bn, be, nullptr);
+    // Free existing BIGNUMs
+    BN_free(m_bn_n);
+    BN_free(m_bn_e);
+    m_bn_n = nullptr;
+    m_bn_e = nullptr;
+
+    // Parse new values
+    BN_dec2bn(&m_bn_n, n.c_str());
+    BN_dec2bn(&m_bn_e, e.c_str());
+
+    // Rebuild EVP_PKEY
+    rebuildKey();
 #endif
 }
 
 void Crypt::rsaSetPrivateKey(const std::string& p, const std::string& q, const std::string& d)
 {
 #ifdef USE_GMP
-    mpz_set_str(m_p, p, 10);
-    mpz_set_str(m_q, q, 10);
-    mpz_set_str(m_d, d, 10);
+    mpz_set_str(m_p, p.c_str(), 10);
+    mpz_set_str(m_q, q.c_str(), 10);
+    mpz_set_str(m_d, d.c_str(), 10);
 
     // n = p * q
     mpz_mul(m_n, m_p, m_q);
 #else
-#if OPENSSL_VERSION_NUMBER < 0x10100005L
-    BN_dec2bn(&m_rsa->p, p);
-    BN_dec2bn(&m_rsa->q, q);
-    BN_dec2bn(&m_rsa->d, d);
-    // clear rsa cache
-    if (m_rsa->_method_mod_p) {
-        BN_MONT_CTX_free(m_rsa->_method_mod_p);
-        m_rsa->_method_mod_p = nullptr;
+    // Free existing BIGNUMs
+    BN_free(m_bn_p);
+    BN_free(m_bn_q);
+    BN_free(m_bn_d);
+    m_bn_p = nullptr;
+    m_bn_q = nullptr;
+    m_bn_d = nullptr;
+
+    // Parse new values
+    BN_dec2bn(&m_bn_p, p.c_str());
+    BN_dec2bn(&m_bn_q, q.c_str());
+    BN_dec2bn(&m_bn_d, d.c_str());
+
+    // Calculate n = p * q if not already set
+    if (!m_bn_n) {
+        m_bn_n = BN_new();
+        BN_CTX* ctx = BN_CTX_new();
+        BN_mul(m_bn_n, m_bn_p, m_bn_q, ctx);
+        BN_CTX_free(ctx);
     }
-    if (m_rsa->_method_mod_q) {
-        BN_MONT_CTX_free(m_rsa->_method_mod_q);
-        m_rsa->_method_mod_q = nullptr;
-    }
-#else
-    BIGNUM* bp = nullptr, * bq = nullptr, * bd = nullptr;
-    BN_dec2bn(&bp, p.c_str());
-    BN_dec2bn(&bq, q.c_str());
-    BN_dec2bn(&bd, d.c_str());
-    RSA_set0_key(m_rsa, nullptr, nullptr, bd);
-    RSA_set0_factors(m_rsa, bp, bq);
-#endif
+
+    m_hasPrivateKey = true;
+
+    // Rebuild EVP_PKEY
+    rebuildKey();
 #endif
 }
+
+#ifndef USE_GMP
+void Crypt::rebuildKey()
+{
+    // Free existing key
+    EVP_PKEY_free(m_pkey);
+    m_pkey = nullptr;
+
+    if (!m_bn_n || !m_bn_e)
+        return;
+
+    OSSL_PARAM_BLD* bld = OSSL_PARAM_BLD_new();
+    if (!bld)
+        return;
+
+    // Add public key components
+    OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_RSA_N, m_bn_n);
+    OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_RSA_E, m_bn_e);
+
+    // Add private key components if available
+    if (m_hasPrivateKey && m_bn_d) {
+        OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_RSA_D, m_bn_d);
+
+        if (m_bn_p && m_bn_q) {
+            OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_RSA_FACTOR1, m_bn_p);
+            OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_RSA_FACTOR2, m_bn_q);
+        }
+    }
+
+    OSSL_PARAM* params = OSSL_PARAM_BLD_to_param(bld);
+    OSSL_PARAM_BLD_free(bld);
+
+    if (!params)
+        return;
+
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr);
+    if (!ctx) {
+        OSSL_PARAM_free(params);
+        return;
+    }
+
+    int selection = m_hasPrivateKey ? EVP_PKEY_KEYPAIR : EVP_PKEY_PUBLIC_KEY;
+
+    if (EVP_PKEY_fromdata_init(ctx) <= 0 ||
+        EVP_PKEY_fromdata(ctx, &m_pkey, selection, params) <= 0) {
+        // Failed to create key
+        m_pkey = nullptr;
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    OSSL_PARAM_free(params);
+}
+#endif
 
 bool Crypt::rsaEncrypt(uint8_t* msg, int size)
 {
@@ -231,7 +310,30 @@ bool Crypt::rsaEncrypt(uint8_t* msg, int size)
 
     return true;
 #else
-    return RSA_public_encrypt(size, msg, msg, m_rsa, RSA_NO_PADDING) != -1;
+    if (!m_pkey)
+        return false;
+
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(m_pkey, nullptr);
+    if (!ctx)
+        return false;
+
+    bool success = false;
+
+    if (EVP_PKEY_encrypt_init(ctx) > 0) {
+        // Set no padding (raw RSA)
+        EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_NO_PADDING);
+
+        size_t outlen = size;
+        std::vector<uint8_t> out(size);
+
+        if (EVP_PKEY_encrypt(ctx, out.data(), &outlen, msg, size) > 0) {
+            memcpy(msg, out.data(), size);
+            success = true;
+        }
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    return success;
 #endif
 }
 
@@ -258,7 +360,30 @@ bool Crypt::rsaDecrypt(uint8_t* msg, int size)
 
     return true;
 #else
-    return RSA_private_decrypt(size, msg, msg, m_rsa, RSA_NO_PADDING) != -1;
+    if (!m_pkey || !m_hasPrivateKey)
+        return false;
+
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(m_pkey, nullptr);
+    if (!ctx)
+        return false;
+
+    bool success = false;
+
+    if (EVP_PKEY_decrypt_init(ctx) > 0) {
+        // Set no padding (raw RSA)
+        EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_NO_PADDING);
+
+        size_t outlen = size;
+        std::vector<uint8_t> out(size);
+
+        if (EVP_PKEY_decrypt(ctx, out.data(), &outlen, msg, size) > 0) {
+            memcpy(msg, out.data(), size);
+            success = true;
+        }
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    return success;
 #endif
 }
 
@@ -268,7 +393,9 @@ int Crypt::rsaGetSize()
     size_t count = (mpz_sizeinbase(m_n, 2) + 7) / 8;
     return ((int)count / 128) * 128;
 #else
-    return RSA_size(m_rsa);
+    if (!m_pkey)
+        return 0;
+    return EVP_PKEY_get_size(m_pkey);
 #endif
 }
 

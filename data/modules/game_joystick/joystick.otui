@@ -1,0 +1,80 @@
+UIWidget
+  anchors.fill: parent
+  focusable: false
+  phantom: true
+
+  // Touch zone covers left half of screen for floating joystick
+  UIWidget
+    id: touchZone
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    width: 50%
+    phantom: false
+    focusable: true
+    visible: false
+    background: alpha
+
+  // Floating joystick container - positioned dynamically
+  UIWidget
+    id: keypad
+    size: 150 150
+    phantom: true
+    focusable: false
+    visible: false
+    opacity: 0.8
+
+    // Joystick base/ring
+    UIWidget
+      id: base
+      anchors.fill: parent
+      image-source: /images/game/mobile/keypad
+      image-fixed-ratio: true
+      phantom: true
+
+    // Direction indicators (highlight when moving that direction)
+    UIWidget
+      id: dirNorth
+      size: 40 20
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-top: 10
+      background: alpha
+      phantom: true
+
+    UIWidget
+      id: dirSouth
+      size: 40 20
+      anchors.bottom: parent.bottom
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-bottom: 10
+      background: alpha
+      phantom: true
+
+    UIWidget
+      id: dirWest
+      size: 20 40
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 10
+      background: alpha
+      phantom: true
+
+    UIWidget
+      id: dirEast
+      size: 20 40
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 10
+      background: alpha
+      phantom: true
+
+    // Joystick pointer/thumb
+    UIWidget
+      id: pointer
+      size: 50 50
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.horizontalCenter: parent.horizontalCenter
+      image-source: /images/game/mobile/keypad_pointer
+      image-fixed-ratio: true
+      phantom: true

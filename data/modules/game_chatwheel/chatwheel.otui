@@ -1,0 +1,108 @@
+ChatWheelSegment < UIButton
+  size: 80 36
+  font: verdana-11px-rounded
+  text-offset: 0 0
+  text-align: center
+  background: #00000099
+  border-radius: 18
+  color: #FFFFFFDD
+  phantom: false
+  $hover:
+    background: #4444FF99
+  $pressed:
+    background: #2222FF99
+
+UIWidget
+  id: chatWheelOverlay
+  anchors.fill: parent
+  focusable: false
+  phantom: true
+  visible: false
+
+  // Semi-transparent backdrop
+  UIWidget
+    id: backdrop
+    anchors.fill: parent
+    background: #00000066
+    phantom: false
+
+  // Chat wheel container (circular layout)
+  UIWidget
+    id: wheel
+    size: 300 300
+    anchors.centerIn: parent
+    phantom: true
+    background: alpha
+
+    // Center label showing current selection
+    UILabel
+      id: centerLabel
+      size: 100 40
+      anchors.centerIn: parent
+      font: verdana-11px-rounded
+      text-align: center
+      color: #FFFFFF
+      text: Quick Chat
+      background: #333333CC
+      border-radius: 20
+
+    // Chat options arranged in a circle
+    ChatWheelSegment
+      id: option1
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      margin-top: 20
+      text: Hi!
+
+    ChatWheelSegment
+      id: option2
+      anchors.right: parent.right
+      anchors.top: parent.top
+      margin-top: 60
+      margin-right: 20
+      text: Thanks!
+
+    ChatWheelSegment
+      id: option3
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 10
+      text: Help!
+
+    ChatWheelSegment
+      id: option4
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      margin-bottom: 60
+      margin-right: 20
+      text: Sorry
+
+    ChatWheelSegment
+      id: option5
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.bottom: parent.bottom
+      margin-bottom: 20
+      text: Bye!
+
+    ChatWheelSegment
+      id: option6
+      anchors.left: parent.left
+      anchors.bottom: parent.bottom
+      margin-bottom: 60
+      margin-left: 20
+      text: Wait
+
+    ChatWheelSegment
+      id: option7
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 10
+      text: Yes
+
+    ChatWheelSegment
+      id: option8
+      anchors.left: parent.left
+      anchors.top: parent.top
+      margin-top: 60
+      margin-left: 20
+      text: No

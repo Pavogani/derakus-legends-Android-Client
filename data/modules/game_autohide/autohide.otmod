@@ -1,0 +1,11 @@
+Module
+  name: game_autohide
+  description: Auto-hide UI panels after inactivity (mobile-friendly)
+  author: Claude
+  website: https://github.com/edubart/otclient
+  sandboxed: true
+  scripts: [ autohide ]
+  @onLoad: init()
+  @onUnload: terminate()
+  dependencies:
+    - game_interface

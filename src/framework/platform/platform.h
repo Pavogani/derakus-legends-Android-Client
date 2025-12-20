@@ -71,6 +71,8 @@ public:
     std::string traceback(std::string_view where, int level = 1, int maxDepth = 32);
     void addKeyListener(std::function<void(const InputEvent&)> /*listener*/) {}
 
+    void vibrate(int durationMs);
+
     static DeviceType getDeviceTypeByName(std::string shortName);
     static OperatingSystem getOsByName(std::string shortName);
 

@@ -610,6 +610,7 @@ protected:
     virtual bool onMouseRelease(const Point& mousePos, Fw::MouseButton button);
     virtual bool onMouseMove(const Point& mousePos, const Point& mouseMoved);
     virtual bool onMouseWheel(const Point& mousePos, Fw::MouseWheelDirection direction);
+    virtual bool onPinchZoom(const Point& mousePos, float zoomDelta);
     virtual bool onClick(const Point& mousePos);
     virtual bool onDoubleClick(const Point& mousePos);
 

@@ -28,7 +28,8 @@
 #ifdef USE_GMP
 #include <gmp.h>
 #else
-#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/bn.h>
 #endif
 
 class Crypt
@@ -70,7 +71,15 @@ private:
 #ifdef USE_GMP
     mpz_t m_p, m_q, m_n, m_e, m_d;
 #else
-    RSA* m_rsa;
+    EVP_PKEY* m_pkey;
+    BIGNUM* m_bn_n;
+    BIGNUM* m_bn_e;
+    BIGNUM* m_bn_d;
+    BIGNUM* m_bn_p;
+    BIGNUM* m_bn_q;
+    bool m_hasPrivateKey;
+
+    void rebuildKey();
 #endif
 };
 

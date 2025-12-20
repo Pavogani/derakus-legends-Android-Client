@@ -52,6 +52,8 @@ public:
 
     std::string getClipboardText();
     void setClipboardText(const std::string_view text);
+
+    void vibrate(int durationMs);
 private:
     JNIEnv* getJNIEnv();
 
@@ -63,6 +65,7 @@ private:
     jmethodID m_midShowInputPreview;
     jmethodID m_midUpdateInputPreview;
     jmethodID m_midHideInputPreview;
+    jmethodID m_midVibrate;
 };
 
 extern AndroidManager g_androidManager;

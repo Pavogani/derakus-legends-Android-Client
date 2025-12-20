@@ -123,5 +123,10 @@ std::string Platform::traceback(const std::string_view where, int level, int max
     return "";
 }
 
+void Platform::vibrate(int durationMs)
+{
+    // Could potentially use navigator.vibrate() in the future via Emscripten
+    (void)durationMs;
+}
 
 #endif

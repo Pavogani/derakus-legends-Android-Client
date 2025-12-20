@@ -33,6 +33,7 @@
 
 #ifdef ANDROID
 #include <errno.h>
+#include "androidmanager.h"
 #else
 #include <execinfo.h>
 #endif
@@ -263,5 +264,14 @@ std::string Platform::traceback(const std::string_view where, int level, int max
 #endif
 }
 
+void Platform::vibrate(int durationMs)
+{
+#ifdef ANDROID
+    g_androidManager.vibrate(durationMs);
+#else
+    // No vibration support on desktop Unix platforms
+    (void)durationMs;
+#endif
+}
 
 #endif

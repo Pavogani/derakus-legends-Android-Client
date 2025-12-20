@@ -26,6 +26,7 @@
 #include <framework/core/unzipper.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/sound/soundmanager.h>
+#include <android/log.h>
 
 AndroidManager g_androidManager;
 
@@ -48,6 +49,7 @@ void AndroidManager::setAndroidManager(JNIEnv* env, jobject androidManager) {
     m_midShowInputPreview = jniEnv->GetMethodID(androidManagerJClass, "showInputPreview", "(Ljava/lang/String;)V");
     m_midUpdateInputPreview = jniEnv->GetMethodID(androidManagerJClass, "updateInputPreview", "(Ljava/lang/String;)V");
     m_midHideInputPreview = jniEnv->GetMethodID(androidManagerJClass, "hideInputPreview", "()V");
+    m_midVibrate = jniEnv->GetMethodID(androidManagerJClass, "vibrate", "(I)V");
     jniEnv->DeleteLocalRef(androidManagerJClass);
 }
 
@@ -96,6 +98,13 @@ void AndroidManager::unZipAssetData() {
 
     const std::filesystem::path initLua { destFolder + "init.lua" };
     if (std::filesystem::exists(initLua)) {
+        __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "init.lua already exists, skipping extraction");
+        return;
+    }
+
+    // Ensure m_app and assetManager are valid
+    if (!m_app || !m_app->activity || !m_app->activity->assetManager) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Asset manager not available");
         return;
     }
 
@@ -104,15 +113,37 @@ void AndroidManager::unZipAssetData() {
             "data.zip",
             AASSET_MODE_BUFFER);
 
+    if (!dataAsset) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to open data.zip from assets");
+        return;
+    }
+
     auto dataFileLength = AAsset_getLength(dataAsset);
-    char* dataContent = (char *) malloc(dataFileLength + 1);
+    if (dataFileLength <= 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "data.zip is empty or invalid");
+        AAsset_close(dataAsset);
+        return;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Extracting data.zip (%ld bytes) to %s", (long)dataFileLength, destFolder.c_str());
+
+    char* dataContent = static_cast<char*>(malloc(dataFileLength));
+    if (!dataContent) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to allocate memory for data.zip");
+        AAsset_close(dataAsset);
+        return;
+    }
+
     AAsset_read(dataAsset, dataContent, dataFileLength);
-    dataContent[dataFileLength] = '\0';
+    AAsset_close(dataAsset);
+
+    // Create destination folder if it doesn't exist
+    std::filesystem::create_directories(destFolder);
 
     unzipper::extract(dataContent, dataFileLength, destFolder);
+    free(dataContent);
 
-    AAsset_close(dataAsset);
-    delete [] dataContent;
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Extraction complete");
 }
 
 std::string AndroidManager::getAppBaseDir() {
@@ -169,11 +200,11 @@ JNIEnv* AndroidManager::getJNIEnv() {
 */
 extern "C" {
 
-void Java_com_otclient_AndroidManager_nativeInit(JNIEnv* env, jobject androidManager) {
+void Java_com_derakus_legends_AndroidManager_nativeInit(JNIEnv* env, jobject androidManager) {
     g_androidManager.setAndroidManager(env, androidManager);
 }
 
-void Java_com_otclient_AndroidManager_nativeSetAudioEnabled(JNIEnv*, jobject, jboolean enabled) {
+void Java_com_derakus_legends_AndroidManager_nativeSetAudioEnabled(JNIEnv*, jobject, jboolean enabled) {
     g_sounds.setAudioEnabled(enabled);
 }
 
@@ -205,18 +236,25 @@ std::string AndroidManager::getClipboardText() {
 void AndroidManager::setClipboardText(const std::string_view text) {
     JNIEnv* env = getJNIEnv();
     if (!env || !m_androidManagerJObject) return;
-    
+
     jclass androidManagerClass = env->GetObjectClass(m_androidManagerJObject);
     if (!androidManagerClass) return;
-    
+
     jmethodID methodID = env->GetMethodID(androidManagerClass, "setClipboardText", "(Ljava/lang/String;)V");
     env->DeleteLocalRef(androidManagerClass);
-    
+
     if (!methodID) return;
-    
+
     jstring jText = env->NewStringUTF(text.data());
     env->CallVoidMethod(m_androidManagerJObject, methodID, jText);
     env->DeleteLocalRef(jText);
+}
+
+void AndroidManager::vibrate(int durationMs) {
+    JNIEnv* env = getJNIEnv();
+    if (!env || !m_androidManagerJObject || !m_midVibrate) return;
+
+    env->CallVoidMethod(m_androidManagerJObject, m_midVibrate, static_cast<jint>(durationMs));
 }
 
 #endif

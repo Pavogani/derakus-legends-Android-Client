@@ -278,6 +278,28 @@ bool UIMap::onMouseWheel(const Point& mousePos, Fw::MouseWheelDirection directio
     return UIWidget::onMouseWheel(mousePos, direction);
 }
 
+bool UIMap::onPinchZoom(const Point& mousePos, float zoomDelta)
+{
+    // Accumulate zoom delta for smooth zooming
+    static float accumulatedDelta = 0.0f;
+    accumulatedDelta += zoomDelta;
+
+    // Trigger zoom when accumulated delta crosses threshold
+    const float zoomThreshold = 0.5f;
+
+    if (accumulatedDelta > zoomThreshold) {
+        zoomIn();
+        accumulatedDelta = 0.0f;
+        return true;
+    } else if (accumulatedDelta < -zoomThreshold) {
+        zoomOut();
+        accumulatedDelta = 0.0f;
+        return true;
+    }
+
+    return true; // Consume the event even if not zooming yet
+}
+
 void UIMap::updateVisibleDimension()
 {
     int dimensionHeight = m_zoom;

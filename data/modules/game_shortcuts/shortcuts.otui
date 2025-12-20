@@ -1,0 +1,140 @@
+GameAction < UIButton
+  size: 56 56
+  phantom: false
+
+  UIButton
+    id: image
+    size: 44 44
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    phantom: true
+    image-color: #FFFFFFCC
+    $checked:
+      opacity: 1.0
+      background: #00FF0033
+      image-color: #FFFFFF
+    $!checked:
+      opacity: 0.7
+      background: alpha
+
+SpellSlot < UIButton
+  size: 50 50
+  phantom: false
+  background: #00000066
+  border: 1 #FFFFFF44
+  border-radius: 8
+
+  UIButton
+    id: image
+    size: 40 40
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    phantom: true
+    $checked:
+      opacity: 1.0
+      border: 2 #00FF00
+    $!checked:
+      opacity: 0.8
+
+UIWidget
+  anchors.fill: parent
+  focusable: false
+  phantom: true
+
+  // Main action shortcuts - right side
+  UIWidget
+    id: shortcuts
+    size: 130 280
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin-bottom: 80
+    margin-right: 8
+    phantom: false
+    focusable: true
+    visible: false
+    background: #00000033
+    border-radius: 12
+
+    UIWidget
+      id: shortcutIcons
+      focusable: false
+      anchors.fill: parent
+      layout:
+        type: grid
+        cell-size: 60 66
+        cell-spacing: 2
+        num-columns: 2
+        fit-children: true
+
+      GameAction
+        id: attack
+        @onSetup: self.image:setImageSource("/images/game/mobile/attack")
+
+      GameAction
+        id: follow
+        @onSetup: self.image:setImageSource("/images/game/mobile/follow")
+
+      GameAction
+        id: look
+        @onSetup: self.image:setImageSource("/images/game/mobile/look")
+
+      GameAction
+        id: use
+        @onSetup: self.image:setImageSource("/images/game/mobile/use")
+
+      GameAction
+        id: stop
+        @onSetup: self.image:setImageSource("/images/game/mobile/stop")
+
+      GameAction
+        id: chat
+        @onSetup: self.image:setImageSource("/images/game/mobile/chat")
+
+  // Quick spell slots - bottom center
+  UIWidget
+    id: spellBar
+    height: 56
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: shortcuts.left
+    margin-bottom: 10
+    margin-left: 160
+    margin-right: 10
+    phantom: false
+    focusable: true
+    visible: false
+    background: alpha
+
+    UIWidget
+      id: spellSlots
+      focusable: false
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.verticalCenter: parent.verticalCenter
+      layout:
+        type: horizontalBox
+        spacing: 8
+        fit-children: true
+
+      SpellSlot
+        id: spell1
+        @onSetup: |
+          self.spellId = nil
+          self.image:setImageSource("/images/game/mobile/spell_empty")
+
+      SpellSlot
+        id: spell2
+        @onSetup: |
+          self.spellId = nil
+          self.image:setImageSource("/images/game/mobile/spell_empty")
+
+      SpellSlot
+        id: spell3
+        @onSetup: |
+          self.spellId = nil
+          self.image:setImageSource("/images/game/mobile/spell_empty")
+
+      SpellSlot
+        id: spell4
+        @onSetup: |
+          self.spellId = nil
+          self.image:setImageSource("/images/game/mobile/spell_empty")

@@ -1,0 +1,11 @@
+Module
+  name: game_chatwheel
+  description: Mobile quick chat wheel for common messages
+  author: OTClient
+  website: https://github.com/mehah/otclient
+  sandboxed: true
+  scripts: [ chatwheel ]
+  @onLoad: init()
+  @onUnload: terminate()
+  dependencies:
+    - game_interface

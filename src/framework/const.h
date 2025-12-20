@@ -253,7 +253,8 @@ namespace Fw
         MousePressInputEvent,
         MouseReleaseInputEvent,
         MouseMoveInputEvent,
-        MouseWheelInputEvent
+        MouseWheelInputEvent,
+        PinchZoomInputEvent
     };
 
     enum MouseButton : uint8_t

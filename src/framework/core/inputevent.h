@@ -41,6 +41,7 @@ struct InputEvent
         keyText = "";
         autoRepeatTicks = 0;
         mouseMoved = {};
+        zoomDelta = 0.0f;
     };
 
     Fw::InputEventType type;
@@ -52,4 +53,5 @@ struct InputEvent
     Point mousePos;
     Point mouseMoved;
     int autoRepeatTicks;
+    float zoomDelta;  // For pinch-to-zoom gestures
 };

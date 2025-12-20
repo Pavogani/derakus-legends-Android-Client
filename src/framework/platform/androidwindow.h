@@ -90,6 +90,10 @@ class AndroidWindow : public PlatformWindow
                        uint32_t pointerIndex,
                        GameActivityMotionEvent* motionEvent);
 
+    // Pinch-to-zoom helpers
+    float calculatePinchDistance(GameActivityMotionEvent* motionEvent);
+    void handlePinchGesture(GameActivityMotionEvent* motionEvent, int actionMasked);
+
     void processKeyDownOrUp();
     void processTextInput();
     void processFingerDownAndUp();
@@ -150,6 +154,11 @@ private:
     ticks_t m_lastPress = 0;
     bool m_isDragging = false;
 
+    // Pinch-to-zoom gesture tracking
+    bool m_isPinching = false;
+    float m_initialPinchDistance = 0.0f;
+    float m_lastPinchDistance = 0.0f;
+
     float m_baseDisplayDensity{ DEFAULT_DISPLAY_DENSITY };
     bool m_hasBaseDisplayDensity{ false };
 
@@ -157,13 +166,13 @@ private:
 };
 
 extern "C" {
-void Java_com_otclient_NativeInputConnection_nativeCommitText(
+void Java_com_derakus_legends_NativeInputConnection_nativeCommitText(
         JNIEnv*, jobject, jstring );
 
-void Java_com_otclient_FakeEditText_onNativeKeyDown(
+void Java_com_derakus_legends_FakeEditText_onNativeKeyDown(
         JNIEnv*, jobject, jint );
 
-void Java_com_otclient_FakeEditText_onNativeKeyUp(
+void Java_com_derakus_legends_FakeEditText_onNativeKeyUp(
         JNIEnv*, jobject, jint );
 }
 

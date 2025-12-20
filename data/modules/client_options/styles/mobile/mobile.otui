@@ -1,0 +1,175 @@
+UIWidget
+  anchors.fill: parent
+  visible: false
+
+  // This panel only shows on mobile
+  $!mobile:
+    visible: false
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    height: 22
+
+    Label
+      id: mobileHeader
+      !text: tr('Mobile Controls')
+      anchors.left: parent.left
+      margin-left: 10
+      color: #FFFFFFff
+      font: verdana-11px-rounded
+      anchors.verticalCenter: parent.verticalCenter
+
+  // Joystick Settings Section
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    height: 22
+
+    OptionCheckBox
+      id: joystickFloating
+      !text: tr('Floating Joystick Mode')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 5
+    height: 22
+
+    OptionCheckBox
+      id: joystickLeftHanded
+      !text: tr('Left-Handed Layout')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 5
+    height: 22
+
+    OptionCheckBox
+      id: hapticEnabled
+      !text: tr('Enable Haptic Feedback')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 5
+    height: 22
+
+    OptionCheckBox
+      id: joystickAutoHide
+      !text: tr('Auto-hide Joystick')
+
+  // Joystick Opacity Slider
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    height: 35
+
+    Label
+      !text: 'Joystick Opacity:'
+      anchors.left: parent.left
+      margin-left: 10
+      color: #c0c0c0ff
+      anchors.top: parent.top
+      margin-top: 3
+
+    OptionScaleScroll
+      id: joystickOpacity
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: prev.bottom
+      margin-left: 10
+      margin-right: 10
+      margin-top: 3
+      minimum: 20
+      maximum: 100
+
+  // Joystick Size Slider
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    height: 35
+
+    Label
+      !text: 'Joystick Size:'
+      anchors.left: parent.left
+      margin-left: 10
+      color: #c0c0c0ff
+      anchors.top: parent.top
+      margin-top: 3
+
+    OptionScaleScroll
+      id: joystickSize
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: prev.bottom
+      margin-left: 10
+      margin-right: 10
+      margin-top: 3
+      minimum: 100
+      maximum: 250
+
+  // Joystick Dead Zone Slider
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    height: 35
+
+    Label
+      !text: 'Dead Zone:'
+      anchors.left: parent.left
+      margin-left: 10
+      color: #c0c0c0ff
+      anchors.top: parent.top
+      margin-top: 3
+
+    OptionScaleScroll
+      id: joystickDeadZone
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: prev.bottom
+      margin-left: 10
+      margin-right: 10
+      margin-top: 3
+      minimum: 5
+      maximum: 40
+
+  // Joystick Sensitivity Slider
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    height: 35
+
+    Label
+      !text: 'Sensitivity:'
+      anchors.left: parent.left
+      margin-left: 10
+      color: #c0c0c0ff
+      anchors.top: parent.top
+      margin-top: 3
+
+    OptionScaleScroll
+      id: joystickSensitivity
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: prev.bottom
+      margin-left: 10
+      margin-right: 10
+      margin-top: 3
+      minimum: 50
+      maximum: 200

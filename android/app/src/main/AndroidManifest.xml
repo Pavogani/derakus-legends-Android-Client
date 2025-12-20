@@ -23,14 +23,15 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Otclient"
+        android:theme="@style/Theme.DerakusLegends"
         android:hardwareAccelerated="true"
         tools:targetApi="31" >
 
         <activity
-            android:name="com.otclient.MainActivity"
+            android:name="com.derakus.legends.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize"
             android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustPan"
             android:exported="true" >
 
             <intent-filter>
@@ -40,7 +41,7 @@
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="otclient" />
+                android:value="DerakusLegends" />
         </activity>
     </application>
 

@@ -448,4 +448,10 @@ std::string Platform::traceback(const std::string_view where, int, int)
     return ss.str();
 }
 
+void Platform::vibrate(int durationMs)
+{
+    // No vibration support on Windows desktop
+    (void)durationMs;
+}
+
 #endif

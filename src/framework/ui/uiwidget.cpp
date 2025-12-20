@@ -1955,6 +1955,11 @@ bool UIWidget::onMouseWheel(const Point& mousePos, const Fw::MouseWheelDirection
     return callLuaField<bool>("onMouseWheel", mousePos, direction);
 }
 
+bool UIWidget::onPinchZoom(const Point& mousePos, float zoomDelta)
+{
+    return callLuaField<bool>("onPinchZoom", mousePos, zoomDelta);
+}
+
 bool UIWidget::onClick(const Point& mousePos)
 {
     return callLuaField<bool>("onClick", mousePos);

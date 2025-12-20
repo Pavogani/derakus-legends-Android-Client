@@ -1,23 +1,34 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
+// Load local.properties for keystore credentials
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
 android {
-    namespace = "com.github.otclient"
+    namespace = "com.derakus.legends"
     compileSdk = 36
 
     signingConfigs {
         create("release") {
             storeFile = file("../derakus-legends.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "Pavoganislegends676!!"
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+                ?: (localProperties.getProperty("KEYSTORE_PASSWORD") ?: "")
             keyAlias = "derakus-legends"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "Pavoganislegends676!!"
+            keyPassword = System.getenv("KEY_PASSWORD")
+                ?: (localProperties.getProperty("KEY_PASSWORD") ?: "")
         }
     }
 
     defaultConfig {
-        applicationId = "com.github.otclient"
+        applicationId = "com.derakus.legends"
         minSdk = 21
         targetSdk = 36
         versionCode = 1
@@ -34,7 +45,7 @@ android {
 
                 arguments += listOf(
                     "-DVCPKG_TARGET_ANDROID=ON",
-                    "-DANDROID_STL=c++_static"
+                    "-DANDROID_STL=c++_shared"
                 )
             }
         }
