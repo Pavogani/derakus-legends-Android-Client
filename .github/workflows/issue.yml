@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   issues:
       types: ['opened']
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -40,30 +40,6 @@ Servers_init = {
         ["protocol"] = 1264,
         ["httpLogin"] = false
     },
-    ["Local 7.72"] = {
-        ["host"] = "192.168.1.186",
-        ["port"] = 7271,
-        ["protocol"] = 772,
-        ["httpLogin"] = false
-    },
-    ["Local 8.60"] = {
-        ["host"] = "192.168.1.186",
-        ["port"] = 7371,
-        ["protocol"] = 860,
-        ["httpLogin"] = false
-    },
-    ["Local 10.98"] = {
-        ["host"] = "192.168.1.186",
-        ["port"] = 7471,
-        ["protocol"] = 1098,
-        ["httpLogin"] = false
-    },
-    ["Local 12.64"] = {
-        ["host"] = "192.168.1.186",
-        ["port"] = 7571,
-        ["protocol"] = 1264,
-        ["httpLogin"] = false
-    },
 }
 
 g_app.setName("Deraku's Legends");

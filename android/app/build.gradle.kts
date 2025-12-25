@@ -36,12 +36,13 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
+            // Only build for actual mobile device architectures (excludes x86/x86_64 emulators)
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
 
         externalNativeBuild {
             cmake {
-                cppFlags += listOf("-std=c++20", "-flto")
+                cppFlags += listOf("-std=c++23", "-flto")
 
                 arguments += listOf(
                     "-DVCPKG_TARGET_ANDROID=ON",
@@ -59,6 +60,12 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+        }
+        
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -69,14 +76,36 @@ android {
             )
         }
     }
+    
+    packaging {
+        // Prevent duplicate library errors
+        resources {
+            excludes += setOf(
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
+        }
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+    
+    sourceSets {
+        getByName("main") {
+            // Ensure assets are included
+            assets.srcDirs("src/main/assets")
+        }
+    }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(21)
+        targetCompatibility = JavaVersion.toVersion(21)
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 
     buildFeatures {
@@ -92,4 +121,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.games:games-activity:1.2.1")
     implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 }
