@@ -2,8 +2,8 @@
 name: Issue - Labeling
 on:
   workflow_dispatch:
-  issues:
-      types: ['opened']
+    issues:
+      types: ['opened','reopened']
 permissions:
   contents: read
   issues: write
