@@ -176,6 +176,7 @@ EnterGameWindow
     anchors.top: serverSelector.bottom
     margin-top: 8
     text-auto-resize: true
+    visible: true
 
   ServerListButton
     id: serverListButton
@@ -183,7 +184,7 @@ EnterGameWindow
     anchors.right: parent.right
     anchors.top: serverLabel.bottom
     margin-top: 3
-    visible: false
+    visible: true
     @onClick: ServerList.show()
 
   TextEdit
@@ -193,6 +194,7 @@ EnterGameWindow
     anchors.right: parent.right
     anchors.top: serverLabel.bottom
     margin-top: 2
+    visible: true
 
   MenuLabel
     id: clientLabel
@@ -202,6 +204,7 @@ EnterGameWindow
     text-auto-resize: true
     margin-right: 10
     margin-top: 8
+    visible: true
 
   ComboBox
     id: clientComboBox
@@ -214,6 +217,7 @@ EnterGameWindow
     menu-scroll: true
     menu-height: 125
     menu-scroll-step: 25
+    visible: true
 
   MenuLabel
     id: portLabel
@@ -222,6 +226,7 @@ EnterGameWindow
     anchors.top: serverHostTextEdit.bottom
     margin-top: 8
     text-auto-resize: true
+    visible: true
 
   TextEdit
     id: serverPortTextEdit
@@ -230,6 +235,7 @@ EnterGameWindow
     anchors.left: parent.horizontalCenter
     anchors.top: clientComboBox.top
     margin-left: 3
+    visible: true
 
   QtCheckBox
     id: autoLoginBox
@@ -238,8 +244,8 @@ EnterGameWindow
     !tooltip: tr('Open charlist automatically when starting client')
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 2
+    anchors.top: serverSelector.bottom
+    margin-top: 8
 
   QtCheckBox
     id: httpLoginBox

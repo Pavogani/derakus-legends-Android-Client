@@ -749,6 +749,8 @@ function EnterGame.doLogin()
     g_settings.set('port', G.port)
     g_settings.set('client-version', clientVersion)
 
+    -- Historically the client attempted HTTP login for newer clients on non-standard ports
+    -- regardless of the httpLogin checkbox; restore that behavior to preserve compatibility.
     if clientVersion >= 1281 and G.port ~= 7171 then
         EnterGame.tryHttpLogin(clientVersion, httpLogin)
     else
