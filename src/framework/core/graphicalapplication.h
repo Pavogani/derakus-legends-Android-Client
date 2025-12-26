@@ -76,6 +76,10 @@ public:
     void mainPoll();
     void close() override;
 
+#ifdef ANDROID
+    void mainLoop(); // Android callback-based render loop
+#endif
+
     void setMaxFps(const uint16_t maxFps) { m_graphicFrameCounter.setMaxFps(maxFps); }
     void setTargetFps(const uint16_t targetFps) { m_graphicFrameCounter.setTargetFps(targetFps); }
 

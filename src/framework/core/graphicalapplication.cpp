@@ -128,16 +128,40 @@ void GraphicalApplication::terminate()
     m_terminated = true;
 }
 
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(ANDROID)
 void GraphicalApplication::mainLoop() {
+    static int loopCount = 0;
+    static bool wasVisible = true;
+    loopCount++;
+
+    bool isVisible = g_window.isVisible();
+
+    // Log visibility changes
+    if (isVisible != wasVisible) {
+        g_logger.info("Window visibility changed: " + std::string(isVisible ? "VISIBLE" : "NOT VISIBLE"));
+        wasVisible = isVisible;
+    }
+
+    if (loopCount <= 5 || loopCount % 60 == 0) {
+        g_logger.info("mainLoop #" + std::to_string(loopCount) +
+            " stopping=" + std::to_string(m_stopping ? 1 : 0) +
+            " visible=" + std::to_string(isVisible ? 1 : 0));
+    }
+
     if (m_stopping) {
+#ifdef __EMSCRIPTEN__
         emscripten_cancel_main_loop();
         MAIN_THREAD_EM_ASM({ window.location.reload(); });
+#endif
         return;
     }
+
+    // Poll events - this will process APP_CMD_INIT_WINDOW if the surface is recreated
     mainPoll();
+    poll();
 
     if (!g_window.isVisible()) {
+        // Keep polling frequently to catch window recreation events
         stdext::millisleep(10);
         return;
     }
@@ -147,7 +171,28 @@ void GraphicalApplication::mainLoop() {
         return m_graphicFrameCounter.getFps();
     };
 
+#ifdef ANDROID
+    // On Android, handle draw events here (replaces mapThread's draw logic)
+    if (m_drawEvents->canDraw(DrawPoolType::MAP)) {
+        m_drawEvents->preLoad();
+        m_drawEvents->draw(DrawPoolType::LIGHT);
+        m_drawEvents->draw(DrawPoolType::FOREGROUND);
+        m_drawEvents->draw(DrawPoolType::FOREGROUND_MAP);
+        m_drawEvents->draw(DrawPoolType::MAP);
+    } else if (m_drawEvents->canDraw(DrawPoolType::FOREGROUND)) {
+        g_ui.render(DrawPoolType::FOREGROUND);
+    }
+    m_mapProcessFrameCounter.update();
+#endif
+
     g_drawPool.draw();
+    g_window.swapBuffers();
+
+    static int swapCount = 0;
+    swapCount++;
+    if (swapCount <= 5 || swapCount % 60 == 0) {
+        g_logger.info("swapBuffers #" + std::to_string(swapCount));
+    }
 
     if (m_graphicFrameCounter.update()) {
         g_dispatcher.addEvent([this, fps = FPS()] {
@@ -159,18 +204,24 @@ void GraphicalApplication::mainLoop() {
 
 void GraphicalApplication::run()
 {
+    g_logger.info("run() entered");
+
     // run the first poll
     mainPoll();
     poll();
+    g_logger.info("run() first poll done");
 
     // show window
     g_window.show();
+    g_logger.info("run() window.show() done");
 
     // run the second poll
     mainPoll();
     poll();
+    g_logger.info("run() second poll done");
 
     g_lua.callGlobalField("g_app", "onRun");
+    g_logger.info("run() onRun callback done");
 
 #ifndef __EMSCRIPTEN__
     const auto FPS = [this] {
@@ -179,6 +230,10 @@ void GraphicalApplication::run()
     };
 #endif
     // THREAD - POOL & MAP
+    // On Android, we skip the mapThread and handle poll/draw in mainLoop() instead
+    // to avoid SpinLock deadlocks between the main thread and mapThread
+#ifndef ANDROID
+    g_logger.info("run() about to submit mapThread");
     const auto& mapThread = g_asyncDispatcher.submit_task([this] {
         BS::multi_future<void> tasks;
 
@@ -213,10 +268,20 @@ void GraphicalApplication::run()
             m_mapProcessFrameCounter.update();
         }
     });
+    g_logger.info("run() mapThread submitted");
+#endif
 
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__)
     m_running = true;
     emscripten_set_main_loop(([] { g_app.mainLoop(); }), 0, 1);
+#elif defined(ANDROID)
+    g_logger.info("run() Android block reached, setting m_running=true");
+    m_running = true;
+    g_luaThreadId = g_eventThreadId = stdext::getThreadId();
+    // Android uses mainLoop() callback from android_main.cpp
+    // No mapThread - poll/draw is handled in mainLoop() to avoid SpinLock deadlocks
+    g_logger.info("run() Android returning to android_main");
+    return;
 #else
     m_running = true;
     while (!m_stopping) {
@@ -239,7 +304,10 @@ void GraphicalApplication::run()
         }
     }
 #endif
+
+#ifndef ANDROID
     mapThread.wait();
+#endif
 
     m_running = false;
     m_stopping = false;
@@ -249,26 +317,44 @@ void GraphicalApplication::run()
 
 void GraphicalApplication::poll()
 {
+    static bool firstCall = true;
+    if (firstCall) g_logger.info("poll() - GarbageCollection");
     GarbageCollection::poll();
-
+    if (firstCall) g_logger.info("poll() - Application::poll");
     Application::poll();
 
 #ifdef FRAMEWORK_SOUND
+    if (firstCall) g_logger.info("poll() - sounds");
     g_sounds.poll();
 #endif
 
+    if (firstCall) g_logger.info("poll() - particles");
     g_particles.poll();
 
     if (!g_window.isVisible()) {
+        if (firstCall) g_logger.info("poll() - textDispatcher (window not visible)");
         g_textDispatcher.poll();
+    }
+    if (firstCall) {
+        g_logger.info("poll() - done");
+        firstCall = false;
     }
 }
 void GraphicalApplication::mainPoll()
 {
+    static bool firstCall = true;
+    if (firstCall) g_logger.info("mainPoll() - clock.update");
     g_clock.update();
+    if (firstCall) g_logger.info("mainPoll() - mainDispatcher.poll");
     g_mainDispatcher.poll();
+    if (firstCall) g_logger.info("mainPoll() - window.poll");
     g_window.poll();
+    if (firstCall) g_logger.info("mainPoll() - textures.poll");
     g_textures.poll();
+    if (firstCall) {
+        g_logger.info("mainPoll() - done");
+        firstCall = false;
+    }
 }
 
 void GraphicalApplication::close()

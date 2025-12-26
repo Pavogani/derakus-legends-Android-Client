@@ -143,6 +143,12 @@ end
 
 -- public functions
 function init()
+    -- Only load terminal in debug builds
+    if g_app.getBuildType() ~= "Debug" then
+        disabled = true
+        return
+    end
+
     terminalWindow = g_ui.displayUI('terminal')
     terminalWindow:setVisible(false)
 
@@ -204,6 +210,11 @@ function init()
 end
 
 function terminate()
+    -- If terminal was disabled (release build), nothing to clean up
+    if disabled then
+        return
+    end
+
     g_settings.setList('terminal-history', commandHistory)
 
     removeEvent(flushEvent)
@@ -221,8 +232,12 @@ function terminate()
 
     Keybind.delete("Misc.", "Toggle Terminal")
     g_logger.setOnLog(nil)
-    terminalWindow:destroy()
-    terminalButton:destroy()
+    if terminalWindow then
+        terminalWindow:destroy()
+    end
+    if terminalButton then
+        terminalButton:destroy()
+    end
     commandEnv = nil
     terminalWindow = nil
     terminalButton = nil

@@ -96,6 +96,8 @@ void AndroidManager::hideInputPreview() {
 void AndroidManager::unZipAssetData() {
     std::string destFolder = getAppBaseDir() + "/game_data/";
 
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Starting asset extraction to: %s", destFolder.c_str());
+
     const std::filesystem::path initLua { destFolder + "init.lua" };
     if (std::filesystem::exists(initLua)) {
         __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "init.lua already exists, skipping extraction");
@@ -104,9 +106,14 @@ void AndroidManager::unZipAssetData() {
 
     // Ensure m_app and assetManager are valid
     if (!m_app || !m_app->activity || !m_app->activity->assetManager) {
-        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Asset manager not available");
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Asset manager not available - app: %p", m_app);
+        if (m_app) {
+            __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "activity: %p", m_app->activity);
+        }
         return;
     }
+
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Asset manager available, attempting to open data.zip");
 
     AAsset* dataAsset = AAssetManager_open(
             m_app->activity->assetManager,
@@ -114,9 +121,22 @@ void AndroidManager::unZipAssetData() {
             AASSET_MODE_BUFFER);
 
     if (!dataAsset) {
-        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to open data.zip from assets");
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to open data.zip from assets - file may not exist in APK");
+        
+        // List assets in the root directory for debugging
+        AAssetDir* assetDir = AAssetManager_openDir(m_app->activity->assetManager, "");
+        if (assetDir) {
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Listing assets in APK:");
+            const char* filename;
+            while ((filename = AAssetDir_getNextFileName(assetDir)) != nullptr) {
+                __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "  - %s", filename);
+            }
+            AAssetDir_close(assetDir);
+        }
         return;
     }
+
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Successfully opened data.zip");
 
     auto dataFileLength = AAsset_getLength(dataAsset);
     if (dataFileLength <= 0) {
@@ -127,21 +147,74 @@ void AndroidManager::unZipAssetData() {
 
     __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Extracting data.zip (%ld bytes) to %s", (long)dataFileLength, destFolder.c_str());
 
-    char* dataContent = static_cast<char*>(malloc(dataFileLength));
-    if (!dataContent) {
-        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to allocate memory for data.zip");
+    // Use streaming extraction to avoid allocating entire file in memory
+    constexpr size_t CHUNK_SIZE = 8 * 1024 * 1024; // 8MB chunks
+    char* buffer = static_cast<char*>(malloc(CHUNK_SIZE));
+    if (!buffer) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to allocate buffer for streaming extraction");
         AAsset_close(dataAsset);
         return;
     }
 
-    AAsset_read(dataAsset, dataContent, dataFileLength);
+    // Write asset to temporary file in chunks
+    std::string tempZipPath = getAppBaseDir() + "/data_temp.zip";
+    FILE* tempFile = fopen(tempZipPath.c_str(), "wb");
+    if (!tempFile) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to create temporary zip file");
+        free(buffer);
+        AAsset_close(dataAsset);
+        return;
+    }
+
+    off_t bytesRead = 0;
+    int readResult;
+    while ((readResult = AAsset_read(dataAsset, buffer, CHUNK_SIZE)) > 0) {
+        fwrite(buffer, 1, readResult, tempFile);
+        bytesRead += readResult;
+        
+        // Log progress every 50MB
+        if (bytesRead % (50 * 1024 * 1024) < CHUNK_SIZE) {
+            int progress = (bytesRead * 100) / dataFileLength;
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Extraction progress: %d%% (%ld/%ld bytes)", 
+                              progress, (long)bytesRead, (long)dataFileLength);
+        }
+    }
+    fclose(tempFile);
     AAsset_close(dataAsset);
+    free(buffer);
+
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Asset copied to temp file, now extracting...");
+
+    // Read the temporary file into memory for unzipper
+    FILE* zipFile = fopen(tempZipPath.c_str(), "rb");
+    if (!zipFile) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to open temporary zip file for extraction");
+        return;
+    }
+
+    fseek(zipFile, 0, SEEK_END);
+    size_t zipSize = ftell(zipFile);
+    fseek(zipFile, 0, SEEK_SET);
+
+    char* zipContent = static_cast<char*>(malloc(zipSize));
+    if (!zipContent) {
+        __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "Failed to allocate memory for zip extraction");
+        fclose(zipFile);
+        return;
+    }
+
+    fread(zipContent, 1, zipSize, zipFile);
+    fclose(zipFile);
+
+    // Delete temporary file
+    std::filesystem::remove(tempZipPath);
 
     // Create destination folder if it doesn't exist
     std::filesystem::create_directories(destFolder);
 
-    unzipper::extract(dataContent, dataFileLength, destFolder);
-    free(dataContent);
+    // Extract the zip file
+    unzipper::extract(zipContent, zipSize, destFolder);
+    free(zipContent);
 
     __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Extraction complete");
 }

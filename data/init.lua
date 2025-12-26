@@ -10,8 +10,8 @@ Services = {
 }
 
 Servers_init = {
-    ["Derakus Legends 14.12 (HTTP)"] = {
-        ["host"] = "https://ot.derakusproductions.com/login.php",
+    ["Derakus Legends 14.12"] = {
+        ["host"] = "ot.derakusproductions.com/login.php",
         ["port"] = 80,
         ["protocol"] = 1412,
         ["httpLogin"] = true

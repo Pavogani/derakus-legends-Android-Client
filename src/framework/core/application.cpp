@@ -159,28 +159,41 @@ void Application::terminate()
 
 void Application::poll()
 {
+    static bool firstCall = true;
+    if (firstCall) g_logger.info("Application::poll() - clock.update");
     g_clock.update();
 
 #ifdef FRAMEWORK_NET
+    if (firstCall) g_logger.info("Application::poll() - Connection::poll (1)");
 #ifdef __EMSCRIPTEN__
     WebConnection::poll();
 #else
     Connection::poll();
 #endif
+    if (firstCall) g_logger.info("Application::poll() - Connection::poll (1) done");
 #endif
 
+    if (firstCall) g_logger.info("Application::poll() - dispatcher.poll");
     g_dispatcher.poll();
+    if (firstCall) g_logger.info("Application::poll() - dispatcher.poll done");
 
     // poll connection again to flush pending write
 #ifdef FRAMEWORK_NET
+    if (firstCall) g_logger.info("Application::poll() - Connection::poll (2)");
 #ifdef __EMSCRIPTEN__
     WebConnection::poll();
 #else
     Connection::poll();
 #endif
+    if (firstCall) g_logger.info("Application::poll() - Connection::poll (2) done");
 #endif
 
+    if (firstCall) g_logger.info("Application::poll() - clock.update (2)");
     g_clock.update();
+    if (firstCall) {
+        g_logger.info("Application::poll() - done");
+        firstCall = false;
+    }
 }
 
 void Application::exit()

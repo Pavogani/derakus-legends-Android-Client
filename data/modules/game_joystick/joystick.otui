@@ -19,8 +19,8 @@ UIWidget
   UIWidget
     id: keypad
     size: 150 150
-    phantom: true
-    focusable: false
+    phantom: false
+    focusable: true
     visible: false
     opacity: 0.8
 

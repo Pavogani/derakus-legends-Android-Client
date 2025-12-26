@@ -1,6 +1,18 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
     <style name="Theme.DerakusLegends" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:windowContentOverlay">@null</item>
+        <item name="colorPrimary">#1a1a1a</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">#d4af37</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
+    <!-- Splash screen theme for Android 12+ -->
+    <style name="Theme.DerakusLegends.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.DerakusLegends</item>
     </style>
 </resources>

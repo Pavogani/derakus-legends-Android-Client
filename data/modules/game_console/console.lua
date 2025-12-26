@@ -198,6 +198,24 @@ function init()
     consoleTabBar:setContentWidget(consoleContentPanel)
     channels = {}
 
+    -- Mobile: Ensure consoleTextEdit is properly configured and on top
+    if g_platform.isMobile() then
+        consoleTextEdit:setFocusable(true)
+        consoleTextEdit:setPhantom(false)
+        consoleTextEdit:setVisible(true)
+
+        -- Hide the toggle button on mobile and re-anchor consoleTextEdit to parent.right
+        local toggleChatBtn = consolePanel:getChildById('toggleChat')
+        if toggleChatBtn then
+            toggleChatBtn:hide()
+            -- Re-anchor consoleTextEdit to parent.right since toggleChat is hidden
+            consoleTextEdit:removeAnchor(AnchorRight)
+            consoleTextEdit:addAnchor(AnchorRight, "parent", AnchorRight)
+        end
+
+        consoleTextEdit:raise()
+    end
+
     readOnlyPanel = consolePanel:getChildById('readOnlyPanel')
     readOnlyPanel:hide()
     consoleContentPanel:removeAnchor(AnchorRight)
@@ -395,6 +413,11 @@ local function bindMovingKeys()
 end
 
 function switchChat(enabled)
+    -- Mobile: Always keep chat enabled (we use joystick for movement)
+    if g_platform.isMobile() then
+        enabled = true
+    end
+
     -- enabled should be true if we enabling the chat and false if disabling it
     -- consoleToggleChat:setChecked(not consoleToggleChat.isChecked)
     if not (enabled and consoleTextEdit:isVisible()) then

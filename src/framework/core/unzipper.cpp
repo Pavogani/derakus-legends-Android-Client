@@ -79,11 +79,18 @@ void unzipper::extract(const char* fileBuffer, uint fileLength, std::string& des
             g_logger.fatal("could not read file info");
         }
 
+        // Normalize path separators: convert Windows backslashes to forward slashes
+        for (size_t j = 0; filename[j] != '\0'; ++j) {
+            if (filename[j] == '\\') {
+                filename[j] = '/';
+            }
+        }
+
         // Check if this entry is a directory or file.
         const size_t filename_length = strlen( filename );
         if (filename[ filename_length-1 ] == dir_delimiter )
         {
-            std::filesystem::create_directory({ destinationPath + filename });
+            std::filesystem::create_directories({ destinationPath + filename });
         }
         else
         {
@@ -96,6 +103,14 @@ void unzipper::extract(const char* fileBuffer, uint fileLength, std::string& des
 
             // Open a file to write out the data.
             std::string destFilePath = destinationPath + filename;
+
+            // Ensure parent directories exist before writing file
+            std::filesystem::path filePath(destFilePath);
+            std::filesystem::path parentPath = filePath.parent_path();
+            if (!parentPath.empty() && !std::filesystem::exists(parentPath)) {
+                std::filesystem::create_directories(parentPath);
+            }
+
             FILE *out = fopen(destFilePath.c_str(), "wb");
             if ( out == nullptr )
             {

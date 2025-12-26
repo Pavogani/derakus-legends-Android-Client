@@ -135,6 +135,12 @@ function init()
                 setZoom(zoomLevel - 0.5)
             end)
         updateZoomButtons()
+
+        -- Add settings button for mobile
+        modules.client_topmenu.addTopRightToggleButton('mobileSettingsButton', tr('Settings'),
+            '/images/topbuttons/options', function()
+                modules.client_options.show()
+            end)
     end
     if g_game.isOnline() then
         online()

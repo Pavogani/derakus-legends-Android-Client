@@ -79,7 +79,13 @@ ConsoleTabBarButton < UIButton
 
 Panel
   id: consolePanel
-  anchors.fill: parent
+  anchors.left: parent.left
+  anchors.right: parent.right
+  anchors.top: parent.top
+  anchors.bottom: parent.bottom
+  $mobile:
+    anchors.bottom: none
+    height: 140
 
   UIWidget
     image-source: /images/ui/2pixel_up_frame_borderimage
@@ -342,7 +348,13 @@ Panel
     shift-navigation: true
     max-length: 255
     height: 18
+    focusable: true
+    phantom: false
     @onTextChange: onTextChange(self:getText())
+    $mobile:
+      height: 36
+      margin-bottom: 6
+      focusable: true
 
   TopToggleButton
     id: toggleChat

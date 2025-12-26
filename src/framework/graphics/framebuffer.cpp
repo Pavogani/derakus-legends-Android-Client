@@ -156,6 +156,8 @@ void FrameBuffer::prepare(const Rect& dest, const Rect& src, const Color& colorC
 
 Size FrameBuffer::getSize()
 {
+    if (!m_texture)
+        return Size();
     return m_texture->getSize();
 }
 

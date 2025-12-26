@@ -27,7 +27,7 @@ local settings = {
   autoHide = true,
   autoHideDelay = 3000, -- ms before auto-hide
   hapticEnabled = true,
-  floatingMode = true   -- true = floating, false = fixed position
+  floatingMode = false   -- true = floating, false = fixed position
 }
 
 -- Direction colors for visual feedback
@@ -35,18 +35,42 @@ local dirHighlight = "#FFFFFF44"
 local dirNormal = "alpha"
 
 function init()
+  g_logger.info("game_joystick: init() called, isMobile=" .. tostring(g_platform.isMobile()))
   if not g_platform.isMobile() then return end
 
   overlay = g_ui.displayUI('joystick')
-  touchZone = overlay.touchZone
-  keypad = overlay.keypad
-  pointer = keypad.pointer
+  if not overlay then
+    g_logger.error("game_joystick: Failed to load joystick UI")
+    return
+  end
+  g_logger.info("game_joystick: overlay created successfully")
+
+  touchZone = overlay:getChildById('touchZone')
+  keypad = overlay:getChildById('keypad')
+
+  if not touchZone or not keypad then
+    g_logger.error("game_joystick: Failed to find touchZone or keypad in joystick UI")
+    return
+  end
+  g_logger.info("game_joystick: touchZone and keypad found")
+
+  pointer = keypad:getChildById('pointer')
 
   -- Load saved settings
   loadSettings()
+  -- Force fixed mode on mobile for now (override any saved floating mode)
+  settings.floatingMode = false
   applySettings()
+  g_logger.info("game_joystick: settings applied, floatingMode=" .. tostring(settings.floatingMode))
 
   connect(touchZone, {
+    onMousePress = onTouchPress,
+    onMouseRelease = onTouchRelease,
+    onMouseMove = onTouchMove
+  })
+
+  -- Also connect events to keypad for fixed mode (keypad receives direct touches)
+  connect(keypad, {
     onMousePress = onTouchPress,
     onMouseRelease = onTouchRelease,
     onMouseMove = onTouchMove
@@ -56,6 +80,13 @@ function init()
     onGameStart = onGameStart,
     onGameEnd = onGameEnd
   })
+  g_logger.info("game_joystick: init() completed, game online=" .. tostring(g_game.isOnline()))
+
+  -- If game is already online, show joystick now
+  if g_game.isOnline() then
+    g_logger.info("game_joystick: Game already online, calling onGameStart")
+    onGameStart()
+  end
 end
 
 function terminate()
@@ -64,12 +95,23 @@ function terminate()
   removeEvent(keypadUpdateEvent)
   removeEvent(snapBackEvent)
   removeEvent(autoHideEvent)
+  removeEvent(showKeypadFixedRetryEvent)
 
-  disconnect(touchZone, {
-    onMousePress = onTouchPress,
-    onMouseRelease = onTouchRelease,
-    onMouseMove = onTouchMove
-  })
+  if touchZone then
+    disconnect(touchZone, {
+      onMousePress = onTouchPress,
+      onMouseRelease = onTouchRelease,
+      onMouseMove = onTouchMove
+    })
+  end
+
+  if keypad then
+    disconnect(keypad, {
+      onMousePress = onTouchPress,
+      onMouseRelease = onTouchRelease,
+      onMouseMove = onTouchMove
+    })
+  end
 
   disconnect(g_game, {
     onGameStart = onGameStart,
@@ -77,28 +119,55 @@ function terminate()
   })
 
   saveSettings()
-  overlay:destroy()
-  overlay = nil
+  if overlay then
+    overlay:destroy()
+    overlay = nil
+  end
+  touchZone = nil
+  keypad = nil
+  pointer = nil
 end
 
 function hide()
-  overlay:hide()
+  if overlay then overlay:hide() end
 end
 
 function show()
-  overlay:show()
+  if overlay then overlay:show() end
 end
 
 function onGameStart()
-  touchZone:show()
-  if not settings.floatingMode then
+  -- Force fixed mode - something keeps resetting this
+  settings.floatingMode = false
+  g_logger.info("game_joystick: onGameStart() called, floatingMode=" .. tostring(settings.floatingMode))
+
+  -- Raise overlay to front so it receives touch events above game panels
+  if overlay then
+    overlay:raise()
+    g_logger.info("game_joystick: overlay:raise() called")
+  end
+
+  if settings.floatingMode then
+    -- Floating mode: show touchZone to detect where user touches
+    if touchZone then
+      touchZone:show()
+      touchZone:raise()
+      g_logger.info("game_joystick: touchZone:show() for floating mode")
+    end
+  else
+    -- Fixed mode: hide touchZone (it would block the console), use keypad directly
+    if touchZone then
+      touchZone:hide()
+      g_logger.info("game_joystick: touchZone:hide() for fixed mode")
+    end
+    g_logger.info("game_joystick: calling showKeypadFixed()")
     showKeypadFixed()
   end
 end
 
 function onGameEnd()
-  touchZone:hide()
-  keypad:hide()
+  if touchZone then touchZone:hide() end
+  if keypad then keypad:hide() end
   isActive = false
 end
 
@@ -106,7 +175,8 @@ end
 function loadSettings()
   local saved = g_settings.getNode('joystick') or {}
   for k, v in pairs(saved) do
-    if settings[k] ~= nil then
+    -- Don't load floatingMode from saved settings - always use fixed mode on mobile
+    if settings[k] ~= nil and k ~= 'floatingMode' then
       settings[k] = v
     end
   end
@@ -117,6 +187,11 @@ function saveSettings()
 end
 
 function applySettings()
+  -- Guard: ensure UI elements exist
+  if not keypad or not touchZone then
+    return
+  end
+
   -- Apply opacity
   keypad:setOpacity(settings.opacity)
 
@@ -125,12 +200,12 @@ function applySettings()
 
   -- Apply left-handed mode
   if settings.leftHanded then
-    touchZone:clearAnchors()
+    touchZone:breakAnchors()
     touchZone:addAnchor(AnchorTop, 'parent', AnchorTop)
     touchZone:addAnchor(AnchorBottom, 'parent', AnchorBottom)
     touchZone:addAnchor(AnchorRight, 'parent', AnchorRight)
   else
-    touchZone:clearAnchors()
+    touchZone:breakAnchors()
     touchZone:addAnchor(AnchorTop, 'parent', AnchorTop)
     touchZone:addAnchor(AnchorBottom, 'parent', AnchorBottom)
     touchZone:addAnchor(AnchorLeft, 'parent', AnchorLeft)
@@ -150,22 +225,51 @@ function setSetting(key, value)
 end
 
 -- Show keypad at fixed position (non-floating mode)
-function showKeypadFixed()
-  local parent = overlay
-  local margin = 20
+local showKeypadFixedRetryEvent = nil
 
-  if settings.leftHanded then
-    keypad:setPosition({x = parent:getWidth() - settings.size - margin, y = parent:getHeight() - settings.size - margin})
-  else
-    keypad:setPosition({x = margin, y = parent:getHeight() - settings.size - margin})
+function showKeypadFixed()
+  g_logger.info("game_joystick: showKeypadFixed() called")
+  if not overlay or not keypad then
+    g_logger.error("game_joystick: overlay or keypad is nil in showKeypadFixed")
+    return
+  end
+  local parent = overlay
+  local marginHorizontal = 20
+  local marginBottom = 80  -- Higher margin to avoid overlapping with console at bottom
+
+  local parentWidth = parent:getWidth()
+  local parentHeight = parent:getHeight()
+  g_logger.info("game_joystick: parent size=" .. parentWidth .. "x" .. parentHeight)
+
+  -- If parent dimensions are not ready yet, retry after a short delay
+  if parentWidth == 0 or parentHeight == 0 then
+    g_logger.info("game_joystick: parent dimensions not ready, scheduling retry...")
+    removeEvent(showKeypadFixedRetryEvent)
+    showKeypadFixedRetryEvent = scheduleEvent(showKeypadFixed, 100)
+    return
   end
 
+  local x, y
+  if settings.leftHanded then
+    x = parentWidth - settings.size - marginHorizontal
+    y = parentHeight - settings.size - marginBottom
+  else
+    x = marginHorizontal
+    y = parentHeight - settings.size - marginBottom
+  end
+
+  g_logger.info("game_joystick: setting keypad position to " .. x .. "," .. y .. " size=" .. settings.size)
+  keypad:setPosition({x = x, y = y})
   keypad:show()
+  keypad:raise()  -- Ensure keypad is on top
+  g_logger.info("game_joystick: keypad:show() called, keypad visible=" .. tostring(keypad:isVisible()))
   resetAutoHide()
 end
 
 -- Show keypad at touch position (floating mode)
 function showKeypadAtPosition(pos)
+  if not overlay or not keypad then return end
+
   -- Center the keypad on touch position
   local halfSize = settings.size / 2
   local x = pos.x - halfSize
@@ -236,12 +340,16 @@ end
 
 -- Snap-back animation
 function animateSnapBack()
+  if not pointer then return end
+
   local steps = 5
   local currentStep = 0
   local startMarginTop = pointer:getMarginTop()
   local startMarginLeft = pointer:getMarginLeft()
 
   local function doStep()
+    if not pointer then return end
+
     currentStep = currentStep + 1
     local progress = currentStep / steps
     local easeProgress = 1 - math.pow(1 - progress, 3) -- ease out cubic
@@ -266,14 +374,14 @@ function animateSnapBack()
 end
 
 function animateFadeOut()
-  if not settings.floatingMode or isActive then return end
+  if not settings.floatingMode or isActive or not keypad then return end
 
   local steps = 10
   local currentStep = 0
   local startOpacity = keypad:getOpacity()
 
   local function doStep()
-    if isActive then return end -- cancelled by new touch
+    if isActive or not keypad then return end -- cancelled by new touch or destroyed
 
     currentStep = currentStep + 1
     local progress = currentStep / steps
@@ -344,7 +452,7 @@ function executeWalk(isFirstStep)
   removeEvent(keypadUpdateEvent)
   keypadUpdateEvent = nil
 
-  if not isActive then
+  if not isActive or not keypad then
     return
   end
 
@@ -366,9 +474,11 @@ function executeWalk(isFirstStep)
   normalY = math.max(-1, math.min(1, normalY))
 
   -- Update pointer position (visual)
-  local maxOffset = settings.size / 2 - 25 -- 25 = half pointer size
-  pointer:setMarginLeft(normalX * maxOffset)
-  pointer:setMarginTop(normalY * maxOffset)
+  if pointer then
+    local maxOffset = settings.size / 2 - 25 -- 25 = half pointer size
+    pointer:setMarginLeft(normalX * maxOffset)
+    pointer:setMarginTop(normalY * maxOffset)
+  end
 
   -- Check dead zone
   local distance = math.sqrt(normalX * normalX + normalY * normalY)

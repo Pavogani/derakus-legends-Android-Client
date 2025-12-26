@@ -24,6 +24,11 @@ if (VCPKG_TARGET_ANDROID)
 	set(Android_INCLUDES ${Android_INCLUDES} ${CMAKE_SOURCE_DIR}/android/app/libs/include)
 	set(Android_LIBRARIES ${Android_LIBRARIES} ${CMAKE_SOURCE_DIR}/android/app/libs/lib/${CMAKE_ANDROID_ARCH_ABI})
 	include_directories(Android_INCLUDES)
+	# Fix Android linker: remove -fuse-ld=gold before project() to prevent IPO check failures
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 endif()
 
 # *****************************************************************************
@@ -97,9 +102,13 @@ endif()
 
 
 # === ANDROID LINKER FIX ===
+# Note: Primary fix moved before project() to prevent IPO check failures
+# This secondary fix catches any flags added after project()
 if(ANDROID)
 	string(REPLACE "-fuse-ld=gold" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 	string(REPLACE "-fuse-ld=gold" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+	string(REPLACE "-fuse-ld=gold" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 endif()
 
 

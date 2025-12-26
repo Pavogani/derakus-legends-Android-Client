@@ -197,6 +197,11 @@ controller:registerEvents(g_game, {
             g_game.enableFeature(GameEnterGameShowAppearance)
         end
 
+        -- Use dat/spr files instead of protobuf for 1264 (server uses items.otb for 12.64)
+        if version == 1264 then
+            g_game.enableFeature(GameLoadSprInsteadProtobuf)
+        end
+
         if version >= 1260 then
             g_game.enableFeature(GameThingQuiver)
         end

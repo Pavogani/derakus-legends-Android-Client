@@ -26,6 +26,7 @@
 #include "resourcemanager.h"
 #include "framework/otml/otmlnode.h"
 #include "framework/platform/platform.h"
+#include <framework/platform/platformwindow.h>
 
 Module::Module(const std::string_view name) : m_sandboxEnv(g_lua.newSandboxEnv()), m_name(name.data()) {}
 
@@ -88,6 +89,11 @@ bool Module::load()
 
         g_logger.debug("Loaded module '{}' ({:.2f}s)", m_name, (stdext::millis() - startTime) / 1000.0
         );
+
+#ifdef ANDROID
+        // Poll window events between module loads to keep Android from killing the window
+        g_window.poll();
+#endif
     } catch (const stdext::exception& e) {
         // remove from package.loaded
         g_lua.getGlobalField("package", "loaded");

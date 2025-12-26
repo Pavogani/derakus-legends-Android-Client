@@ -210,7 +210,7 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
 }
 
 void DrawPoolManager::drawObjects(DrawPool* pool) {
-    const auto hasFramebuffer = pool->hasFrameBuffer();
+    const auto hasFramebuffer = pool->hasFrameBuffer() && pool->m_framebuffer->isValid();
 
     const auto shouldRepaint = pool->shouldRepaint();
     if (!shouldRepaint && hasFramebuffer)
@@ -245,7 +245,7 @@ void DrawPoolManager::drawPool(const DrawPoolType type) {
 
     drawObjects(pool);
 
-    if (pool->hasFrameBuffer()) {
+    if (pool->hasFrameBuffer() && pool->m_framebuffer->isValid()) {
         g_painter->resetState();
 
         if (pool->m_beforeDraw) pool->m_beforeDraw();

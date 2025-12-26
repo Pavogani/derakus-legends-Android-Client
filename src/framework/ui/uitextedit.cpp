@@ -1487,14 +1487,26 @@ bool UITextEdit::onKeyText(const std::string_view keyText)
 
 bool UITextEdit::onMousePress(const Point& mousePos, const Fw::MouseButton button)
 {
-    if (UIWidget::onMousePress(mousePos, button))
+#ifdef ANDROID
+    g_logger.info("UITextEdit::onMousePress called on widget '{}', button={}, editable={}",
+                  getId(), static_cast<int>(button), getProp(PropEditable));
+#endif
+    if (UIWidget::onMousePress(mousePos, button)) {
+#ifdef ANDROID
+        g_logger.info("UITextEdit::onMousePress - UIWidget::onMousePress returned true (event consumed by Lua)");
+#endif
         return true;
+    }
 
     if (button == Fw::MouseLeftButton) {
 #ifdef ANDROID
+        g_logger.info("UITextEdit::onMousePress - Left button, showing keyboard...");
         if (getProp(PropEditable)) {
+            g_logger.info("UITextEdit::onMousePress - Widget is editable, calling showKeyboardSoft");
             g_androidManager.showKeyboardSoft();
             g_androidManager.showInputPreview(getText());
+        } else {
+            g_logger.info("UITextEdit::onMousePress - Widget is NOT editable, skipping keyboard");
         }
 #endif
         const int pos = getTextPos(mousePos);

@@ -44,7 +44,9 @@ end
 local function load(version)
     local errorList = {}
 
-    if version >= 1281 and not g_game.getFeature(GameLoadSprInsteadProtobuf) then
+    -- Use protobuf appearances system for versions >= 1200 (Tibia 12.00+)
+    -- unless GameLoadSprInsteadProtobuf is enabled
+    if version >= 1200 and not g_game.getFeature(GameLoadSprInsteadProtobuf) then
         local filePath = resolvepath(string.format('/things/%d/', version))
         if not g_things.loadAppearances(filePath) then
             errorList[#errorList + 1] = "Couldn't load assets"
@@ -71,7 +73,7 @@ local function load(version)
         if not g_sprites.loadSpr(sprPath) then
             errorList[#errorList + 1] = tr('Unable to load spr file, please place a valid spr in \'%s.spr\'', sprPath)
         end
-        if g_game.getFeature(GameLoadSprInsteadProtobuf) and version >= 1281 then
+        if g_game.getFeature(GameLoadSprInsteadProtobuf) and version >= 1200 then
             local staticPath = resolvepath(string.format('/things/%d/appearances', version))
             if not g_things.loadAppearances(staticPath) then
                 g_logger.warning(string.format(

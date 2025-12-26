@@ -22,6 +22,7 @@
 
 #include "asyncdispatcher.h"
 #include "eventdispatcher.h"
+#include "framework/stdext/stdext.h"
 
 thread_local DispatcherContext EventDispatcher::dispacherContext;
 
@@ -121,14 +122,27 @@ void EventDispatcher::executeEvents() {
 }
 
 void EventDispatcher::executeDeferEvents() {
+    bool isGDisp = (this == &g_dispatcher);
+    static bool logged = false;
+
     dispacherContext.group = TaskGroup::Serial;
     dispacherContext.type = DispatcherType::DeferEvent;
 
+    if (isGDisp && !logged) g_logger.info("g_disp executeDeferEvents enter, deferList=" + std::to_string(m_deferEventList.size()));
+
     do {
+        if (isGDisp && !logged) g_logger.info("g_disp executeDeferEvents executing " + std::to_string(m_deferEventList.size()) + " events");
         for (auto& event : m_deferEventList)
             event.execute();
         m_deferEventList.clear();
 
+        if (isGDisp && !logged) g_logger.info("g_disp executeDeferEvents merging");
+
+#ifdef ANDROID
+        // On Android without mapThread, just skip the thread merging entirely
+        // Events are added directly without thread queues since we're single-threaded
+        if (isGDisp && !logged) g_logger.info("g_disp deferEvents: skipping thread merge on Android");
+#else
         for (const auto& thread : m_threads) {
             SpinLock::Guard guard(thread->lock);
             if (m_deferEventList.size() < thread->deferEvents.size())
@@ -138,8 +152,14 @@ void EventDispatcher::executeDeferEvents() {
                 thread->deferEvents.clear();
             }
         }
+#endif
+        if (isGDisp && !logged) g_logger.info("g_disp executeDeferEvents after merge, deferList=" + std::to_string(m_deferEventList.size()));
     } while (!m_deferEventList.empty());
 
+    if (isGDisp && !logged) {
+        g_logger.info("g_disp executeDeferEvents done");
+        logged = true;
+    }
     dispacherContext.reset();
 }
 
@@ -171,6 +191,7 @@ void EventDispatcher::executeScheduledEvents() {
 }
 
 void EventDispatcher::mergeEvents() {
+    // Merge events from all thread task queues into the main event list
     for (const auto& thread : m_threads) {
         SpinLock::Guard guard(thread->lock);
         if (!thread->events.empty()) {
@@ -186,6 +207,11 @@ void EventDispatcher::mergeEvents() {
         if (!thread->scheduledEventList.empty()) {
             m_scheduledEventList.insert(make_move_iterator(thread->scheduledEventList.begin()), make_move_iterator(thread->scheduledEventList.end()));
             thread->scheduledEventList.clear();
+        }
+
+        if (!thread->deferEvents.empty()) {
+            m_deferEventList.insert(m_deferEventList.end(), make_move_iterator(thread->deferEvents.begin()), make_move_iterator(thread->deferEvents.end()));
+            thread->deferEvents.clear();
         }
     }
 }

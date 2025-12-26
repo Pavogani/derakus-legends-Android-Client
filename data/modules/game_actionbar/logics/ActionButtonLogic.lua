@@ -1,6 +1,11 @@
 -- /*=============================================
 -- =            util             =
 -- =============================================*/
+
+-- Long press support for mobile
+local LONG_PRESS_TIME = 500  -- milliseconds
+local longPressTimers = {}
+
 local function string_empty(str)
     return #str == 0
 end
@@ -599,55 +604,120 @@ end
 -- /*=============================================
 -- =       right button in an action bar slot    =
 -- =============================================*/
+
+-- Helper function to show button assignment menu (used by right-click and long press)
+local function showButtonAssignMenu(button, mousePos)
+    button.cache = getButtonCache(button)
+    local menu = g_ui.createWidget('PopupMenu')
+    menu:setGameMenu(true)
+    menu:addOption(button.cache.isSpell and tr('Edit Spell') or tr('Assign Spell'), function()
+        assignSpell(button)
+    end)
+    if button.item and button.item:getItemId() > 100 then
+        menu:addOption(tr('Edit Object'), function()
+            assignItem(button, button.item:getItemId())
+        end)
+    else
+        menu:addOption(tr('Assign Object'), function()
+            assignItemEvent(button)
+        end)
+    end
+
+    local buttonText = ""
+    if button.item then
+        buttonText = button.item.text:getText()
+    end
+
+    menu:addOption(buttonText:len() > 0 and tr('Edit Text') or tr('Assign Text'), function()
+        assignText(button)
+    end)
+    menu:addOption(button.cache.isPassive and tr('Edit Passive Ability') or tr('Assign Passive Ability'),
+        function()
+            assignPassive(button)
+        end)
+    menu:addOption(button.cache.hotkey and tr('Edit Hotkey') or tr('Assign Hotkey'), function()
+        assignHotkey(button)
+    end)
+    if button.cache.actionType > 0 then
+        menu:addSeparator()
+        menu:addOption(tr('Clear Action'), function()
+            clearButton(button, true)
+        end)
+    end
+    if button.item and button.item:getItemId() > 100 then
+        if modules.game_bot then
+            menu:addSeparator()
+            local useThingId = button.item:getItemId()
+            menu:addOption("ID: " .. useThingId, function() g_window.setClipboardText(useThingId) end)
+        end
+    end
+    menu:display(mousePos)
+end
+
 function configureButtonMouseRelease(button)
     button.onMouseRelease = function(button, mousePos, mouseButton)
-        button.cache = getButtonCache(button)
         if mouseButton == MouseRightButton then
-            local menu = g_ui.createWidget('PopupMenu')
-            menu:setGameMenu(true)
-            menu:addOption(button.cache.isSpell and tr('Edit Spell') or tr('Assign Spell'), function()
-                assignSpell(button)
-            end)
-            if button.item and button.item:getItemId() > 100 then
-                menu:addOption(tr('Edit Object'), function()
-                    assignItem(button, button.item:getItemId())
-                end)
-            else
-                menu:addOption(tr('Assign Object'), function()
-                    assignItemEvent(button)
-                end)
-            end
-
-            local buttonText = ""
-            if button.item then
-                buttonText = button.item.text:getText()
-            end
-
-            menu:addOption(buttonText:len() > 0 and tr('Edit Text') or tr('Assign Text'), function()
-                assignText(button)
-            end)
-            menu:addOption(button.cache.isPassive and tr('Edit Passive Ability') or tr('Assign Passive Ability'),
-                function()
-                    assignPassive(button)
-                end)
-            menu:addOption(button.cache.hotkey and tr('Edit Hotkey') or tr('Assign Hotkey'), function()
-                assignHotkey(button)
-            end)
-            if button.cache.actionType > 0 then
-                menu:addSeparator()
-                menu:addOption(tr('Clear Action'), function()
-                    clearButton(button, true)
-                end)
-            end
-            if button.item and button.item:getItemId() > 100 then
-                if modules.game_bot then
-                    menu:addSeparator()
-                    local useThingId = button.item:getItemId()
-                    menu:addOption("ID: " .. useThingId, function() g_window.setClipboardText(useThingId) end)
-                end
-            end
-            menu:display(mousePos)
+            showButtonAssignMenu(button, mousePos)
         end
+    end
+end
+
+-- Configure long press for mobile (shows same menu as right-click)
+local function configureButtonLongPress(button)
+    local buttonId = button:getId()
+
+    button.item.isLongPress = false
+    button.item.longPressPos = nil
+
+    button.item.onMousePress = function(self, pos, mouseButton)
+        if mouseButton ~= MouseLeftButton then return false end
+
+        -- Cancel any existing timer
+        if longPressTimers[buttonId] then
+            removeEvent(longPressTimers[buttonId])
+            longPressTimers[buttonId] = nil
+        end
+
+        button.item.isLongPress = false
+        button.item.longPressPos = pos
+
+        -- Start long-press detection timer (only on mobile)
+        if g_platform.isMobile() then
+            longPressTimers[buttonId] = scheduleEvent(function()
+                button.item.isLongPress = true
+                longPressTimers[buttonId] = nil
+
+                -- Trigger haptic feedback
+                if g_platform.vibrate then
+                    g_platform.vibrate(20)
+                end
+
+                -- Show assignment menu
+                showButtonAssignMenu(button, button.item.longPressPos)
+            end, LONG_PRESS_TIME)
+        end
+
+        return true
+    end
+
+    button.item.onMouseRelease = function(self, pos, mouseButton)
+        if mouseButton ~= MouseLeftButton then return false end
+
+        -- Cancel long-press timer if still running
+        if longPressTimers[buttonId] then
+            removeEvent(longPressTimers[buttonId])
+            longPressTimers[buttonId] = nil
+        end
+
+        -- If it was a long-press, don't execute normal action
+        if button.item.isLongPress then
+            button.item.isLongPress = false
+            return true
+        end
+
+        -- Normal tap - execute action
+        onExecuteAction(button)
+        return true
     end
 end
 -- /*=============================================
@@ -833,8 +903,13 @@ function updateButton(button)
         dragItem = nil
     end
 
-    button.item.onClick = function()
-        onExecuteAction(button)
+    -- Configure long press for mobile, regular click for desktop
+    if g_platform.isMobile() then
+        configureButtonLongPress(button)
+    else
+        button.item.onClick = function()
+            onExecuteAction(button)
+        end
     end
     button.item.text.onClick = function()
         onExecuteAction(button)

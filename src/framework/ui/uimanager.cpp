@@ -92,9 +92,21 @@ void UIManager::inputEvent(const InputEvent& event)
         case Fw::MousePressInputEvent:
             m_mouseReceiver->propagateOnMouseEvent(event.mousePos, widgetList);
 
+#ifdef ANDROID
+            // Debug: log all widgets that will receive the mouse event
+            {
+                std::string widgetNames;
+                for (const auto& w : widgetList) {
+                    if (!widgetNames.empty()) widgetNames += ", ";
+                    widgetNames += w->getId();
+                }
+                g_logger.info("MousePress at ({},{}) - widgetList: [{}]",
+                    event.mousePos.x, event.mousePos.y, widgetNames);
+            }
+#endif
+
             if (event.mouseButton == Fw::MouseLeftButton && m_mouseReceiver->isVisible()) {
                 auto pressedWidget = m_mouseReceiver->recursiveGetChildByPos(event.mousePos, false);
-
                 bool isOnHTML = false;
                 if (pressedWidget) {
                     isOnHTML = pressedWidget->isOnHtml();
@@ -110,9 +122,16 @@ void UIManager::inputEvent(const InputEvent& event)
             }
 
             for (const auto& widget : widgetList) {
+#ifdef ANDROID
+                g_logger.info("Calling onMousePress on widget '{}'", widget->getId());
+#endif
                 widget->recursiveFocus(Fw::MouseFocusReason);
-                if (widget->onMousePress(event.mousePos, event.mouseButton))
+                if (widget->onMousePress(event.mousePos, event.mouseButton)) {
+#ifdef ANDROID
+                    g_logger.info("Widget '{}' consumed the event", widget->getId());
+#endif
                     break;
+                }
             }
 
             break;

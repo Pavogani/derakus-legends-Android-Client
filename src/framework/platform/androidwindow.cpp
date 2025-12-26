@@ -95,10 +95,12 @@ void AndroidWindow::internalChooseGL() {
 #else
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES_BIT,
 #endif
-        EGL_RED_SIZE, 4,
-        EGL_GREEN_SIZE, 4,
-        EGL_BLUE_SIZE, 4,
-        EGL_ALPHA_SIZE, 4,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 0,
+        EGL_DEPTH_SIZE, 16,
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_NONE
     };
 
@@ -184,6 +186,7 @@ void AndroidWindow::queryGlSize() {
 }
 
 void AndroidWindow::terminate() {
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "AndroidWindow::terminate() called - hiding window");
     m_visible = false;
     internalDestroyGLContext();
 }
@@ -306,6 +309,10 @@ void AndroidWindow::handleInputEvent() {
 }
 
 void AndroidWindow::swapBuffers() {
+    static int swapCount = 0;
+    if (++swapCount % 60 == 0) {
+        __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "swapBuffers called %d times (60 FPS = working)", swapCount);
+    }
     eglSwapBuffers(m_eglDisplay, m_eglSurface);
 }
 
@@ -417,8 +424,9 @@ void AndroidWindow::handleNativeEvents() {
     int events;
     struct android_poll_source* source;
 
-    // If not visible, block until we get an event; if visible, don't block.
-    while ((ALooper_pollOnce(m_visible ? 0 : -1, nullptr, &events, (void**)&source)) >= 0) {
+    // Always use non-blocking poll (timeout = 0) to avoid deadlocks
+    // The render loop will call this repeatedly, so we don't need to block
+    while ((ALooper_pollOnce(0, nullptr, &events, (void**)&source)) >= 0) {
         if (source != nullptr) {
             source->process(m_app, source);
         }
@@ -434,59 +442,90 @@ void AndroidWindow::handleNativeEvents() {
 
 void AndroidWindow::handleCmd(int32_t cmd) {
     switch (cmd) {
+        case APP_CMD_START:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_START - activity starting");
+            break;
+        case APP_CMD_RESUME:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_RESUME - activity resuming, window=%p", m_app->window);
+            // If we have a window but no surface, try to recreate it
+            if (m_app->window != nullptr && m_eglSurface == EGL_NO_SURFACE) {
+                __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_RESUME - recreating surface");
+                if (m_eglContext != EGL_NO_CONTEXT) {
+                    internalCreateGLSurface();
+                    internalConnectSurface();
+                    updateDisplayDensityFromSystem(g_androidManager.getScreenDensity());
+                    queryGlSize();
+                    m_visible = true;
+                    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_RESUME - surface recreated, visible=true");
+                }
+            }
+            break;
         case APP_CMD_INIT_WINDOW:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_INIT_WINDOW received, window=%p", m_app->window);
             if (m_app->window != nullptr) {
-                if (m_eglContext) {
+                if (m_eglContext != EGL_NO_CONTEXT) {
+                    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Creating GL surface (context exists)");
                     internalCreateGLSurface();
                     internalConnectSurface();
                 } else {
+                    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Initializing GL (first time)");
                     internalInitGL();
                 }
                 updateDisplayDensityFromSystem(g_androidManager.getScreenDensity());
+                queryGlSize();
+                __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Window visible, size=%dx%d", m_size.width(), m_size.height());
                 m_visible = true;
             } else {
+                __android_log_print(ANDROID_LOG_ERROR, "OTClientMobile", "APP_CMD_INIT_WINDOW but m_app->window is null!");
                 m_visible = false;
             }
             break;
+        case APP_CMD_GAINED_FOCUS:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_GAINED_FOCUS");
+            break;
+        case APP_CMD_LOST_FOCUS:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_LOST_FOCUS");
+            break;
+        case APP_CMD_PAUSE:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_PAUSE - activity pausing");
+            break;
+        case APP_CMD_STOP:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_STOP - activity stopping");
+            break;
         case APP_CMD_LOW_MEMORY:
+            __android_log_print(ANDROID_LOG_WARN, "OTClientMobile", "APP_CMD_LOW_MEMORY received - NOT hiding window");
+            // Don't hide window on low memory, just log it
+            break;
         case APP_CMD_TERM_WINDOW:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_TERM_WINDOW - hiding window, surface=%p", (void*)m_eglSurface);
             m_visible = false;
             internalDestroySurface();
             break;
         case APP_CMD_WINDOW_RESIZED:
         case APP_CMD_CONFIG_CHANGED:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "Window resized/config changed");
             updateDisplayDensityFromSystem(g_androidManager.getScreenDensity());
             queryGlSize();
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "New size=%dx%d", m_size.width(), m_size.height());
+            break;
+        case APP_CMD_DESTROY:
+            __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "APP_CMD_DESTROY - activity being destroyed");
             break;
         default:
+            __android_log_print(ANDROID_LOG_DEBUG, "OTClientMobile", "Unhandled APP_CMD: %d", cmd);
             break;
     }
 }
 
 void AndroidWindow::updateDisplayDensityFromSystem(float screenDensity) {
-    if (screenDensity <= 0.f) {
-        m_displayDensity = m_baseDisplayDensity;
-        return;
-    }
+    // For mobile, we always use density 1.0 so the UI fills the entire screen
+    // The UI elements are already designed to be touch-friendly at pixel resolution
+    m_displayDensity = 1.0f;
+    m_baseDisplayDensity = 1.0f;
+    m_hasBaseDisplayDensity = true;
 
-    if (!m_hasBaseDisplayDensity) {
-        m_baseDisplayDensity = screenDensity;
-        m_hasBaseDisplayDensity = true;
-        m_displayDensity = screenDensity;
-        return;
-    }
-
-    if (m_baseDisplayDensity <= 0.f) {
-        m_displayDensity = screenDensity;
-        return;
-    }
-
-    const float ratio = screenDensity / m_baseDisplayDensity;
-    if (ratio > 0.9f && ratio < 1.1f) {
-        m_displayDensity = screenDensity;
-    } else {
-        m_displayDensity = m_baseDisplayDensity;
-    }
+    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile",
+        "Display density set to 1.0 (screen density was %.2f)", screenDensity);
 }
 
 float AndroidWindow::calculatePinchDistance(GameActivityMotionEvent* motionEvent) {

@@ -53,8 +53,11 @@ extern "C" {
         // initialize resources
 #ifdef ANDROID
     // Unzip Android assets/data.zip
+        g_logger.info("Android: Starting asset extraction...");
         g_androidManager.unZipAssetData();
+        g_logger.info("Android: Asset extraction complete");
         g_resources.init(nullptr);
+        g_logger.info("Android: Resource manager initialized");
 #else
         g_resources.init(args[0].data());
 #endif
@@ -76,8 +79,11 @@ extern "C" {
         }
 
         // find script init.lua and run it
-        if (!g_resources.discoverWorkDir("init.lua"))
+        g_logger.info("Searching for init.lua in work directories...");
+        if (!g_resources.discoverWorkDir("init.lua")) {
             g_logger.fatal("Unable to find work directory, the application cannot be initialized.");
+        }
+        g_logger.info("Found work directory: {}", g_resources.getWorkDir());
 
         // initialize application framework and otclient
         const auto drawEvents = ApplicationDrawEventsPtr(&g_client, [](ApplicationDrawEvents*) {});
@@ -111,8 +117,19 @@ extern "C" {
         if (!g_lua.safeRunScript("init.lua"))
             g_logger.fatal("Unable to run script init.lua!");
 
+        g_logger.info("init.lua completed successfully, starting main render loop...");
+
         // the run application main loop
         g_app.run();
+
+#ifdef ANDROID
+        // On Android, run() returns immediately to let android_main drive the render loop
+        // Don't terminate here - android_main will handle termination when the app exits
+        g_logger.info("main() returning to android_main for render loop");
+        return 0;
+#endif
+
+        g_logger.info("Main render loop exited");
 
         // unload modules
         g_app.deinit();

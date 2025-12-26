@@ -326,7 +326,7 @@ public:
     void setProtocolVersion(uint16_t version);
     int getProtocolVersion() { return m_protocolVersion; }
 
-    bool isUsingProtobuf() { return getProtocolVersion() >= 1281 && !getFeature(Otc::GameLoadSprInsteadProtobuf); }
+    bool isUsingProtobuf() { return getProtocolVersion() >= 1200 && !getFeature(Otc::GameLoadSprInsteadProtobuf); }
 
     void setClientVersion(uint16_t version);
     int getClientVersion() { return m_clientVersion; }
