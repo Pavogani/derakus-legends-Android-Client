@@ -2,35 +2,7 @@
 
 ## Critical Issues
 
-### 1. 14.12 Canary Server Connection (Android Client)
-**Status:** Unresolved
-**Symptom:** Client shows "Success (no Errors)" popup when attempting to connect to 14.12 Canary server
-**Server:** ot.derakusproductions.com:7171 (Canary)
-**Current Config:**
-```lua
-["Derakus Legends 14.12"] = {
-    ["host"] = "ot.derakusproductions.com/login.php",
-    ["port"] = 80,
-    ["protocol"] = 1412,
-    ["httpLogin"] = true
-},
-```
-**Investigation Notes:**
-- Binary protocol on port 7171 was tried first - connection drops after establishing
-- HTTP login on port 80 with login.php was configured - still showing "Success (no Errors)"
-- The login.php endpoint is responding correctly (tested with curl)
-- RSA keys match between client and server
-- Network connectivity confirmed (ports 7171, 80 accessible)
-
-**Possible Causes:**
-- MyAAC login.php response format not matching what OTClient expects
-- Missing characters/worlds in login response
-- JSON parsing issue in httplogin.cpp
-
-**Next Steps:**
-- Debug the actual HTTP response from login.php
-- Check if account exists in Canary database
-- Verify login.php returns proper playdata structure
+*No critical issues at this time.*
 
 ---
 
@@ -53,6 +25,22 @@
 ---
 
 ## Resolved Issues (For Reference)
+
+### 14.12 Canary Server Connection (Android Client) - FIXED
+**Problem:** Client showed "Success (no Errors)" popup, returned to login screen
+**Root Cause:** Password in database didn't match user's expected password (SHA1 hash mismatch)
+**Solution:**
+1. Configured HTTP login in init.lua (host: `ot.derakusproductions.com/login.php`, port: 80)
+2. Updated account password hash in MySQL database
+**Config:**
+```lua
+["Derakus Legends 14.12"] = {
+    ["host"] = "ot.derakusproductions.com/login.php",
+    ["port"] = 80,
+    ["protocol"] = 1412,
+    ["httpLogin"] = true
+},
+```
 
 ### First Items Script Error (Server 1098) - FIXED
 **Problem:** `getContainer` nil error on line 53
